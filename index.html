@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USDT/USDC Sender — Multi-Network Wallet</title>
+  <link rel="stylesheet" href="css/styles.css?v=30" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#26a17b" id="meta-theme-color">
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="header-logo">
+      <img src="/usdt-logo.png" alt="USDT" class="logo-icon logo-icon-image" />
+      <div class="logo-text" id="brand-text">USDT<span>Sender</span></div>
+    </div>
+    <div class="header-right">
+      <!-- Network Selector -->
+      <div class="network-selector-wrap">
+        <select id="network-select" class="network-select" onchange="App.switchNetwork(this.value)" title="Changer de réseau">
+          <option value="tron">🔴 TRON — USDT/USDC</option>
+          <option value="polygon">🟣 Polygon — USDT/USDC</option>
+          <option value="tenderly">🟣 Tenderly Mainnet — USDT/USDC</option>
+          <option value="sepolia">🔵 Sepolia Testnet — USDT/USDC</option>
+        </select>
+      </div>
+      <div class="token-toggle" id="token-toggle">
+        <button class="token-btn token-btn-usdt active" id="token-btn-usdt" onclick="App.switchToken('usdt')">USDT</button>
+        <button class="token-btn token-btn-usdc" id="token-btn-usdc" onclick="App.switchToken('usdc')">USDC</button>
+        <button class="token-btn token-btn-afrx" id="token-btn-afrx" onclick="App.switchToken('afrx')" style="background:linear-gradient(135deg,#2ecc71,#d4a017);color:#111;font-weight:800;display:none;">AFRX 🔥</button>
+        <button class="token-btn token-btn-uscadx" id="token-btn-uscadx" onclick="App.switchToken('uscadx')" style="background:linear-gradient(135deg,#2775ca,#1a52a8);color:#fff;font-weight:800;display:none;">USCADX 💳</button>
+      </div>
+      <div class="network-badge">
+        <span class="network-dot" id="network-dot" style="background:#9b59b6;"></span>
+        <span id="network-badge-text">Tenderly</span>
+      </div>
+      <span class="mode-badge" id="mode-badge">⚫ Déconnecté</span>
+      <span class="metamask-status" id="metamask-status">Vérification...</span>
+      <button class="btn-connect" id="connect-btn">🦊 Connecter Wallet</button>
+      <a id="live-telemetry-link" href="/live-telemetry.html" style="display:none;align-items:center;justify-content:center;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:12px;font-weight:700;text-decoration:none;">📡 Live Visitors</a>
+      <button onclick="(function(){localStorage.removeItem('usdt_jwt');localStorage.removeItem('usdt_user');window.location.href='/login.html';})()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:var(--radius-sm);padding:6px 12px;font-size:0.8rem;cursor:pointer;" title="Sign out">⏏ Logout</button>
+    </div>
+  </header>
+
+  <!-- ===== TAB NAVIGATION ===== -->
+  <nav class="tab-nav" id="tab-nav">
+    <button class="tab-btn active" data-tab="wallet" onclick="App.switchTab('wallet')">
+      <span class="tab-icon">💼</span>
+      <span class="tab-label">Wallet</span>
+    </button>
+    <button class="tab-btn" data-tab="send" onclick="App.switchTab('send')">
+      <span class="tab-icon">📤</span>
+      <span class="tab-label">Envoyer</span>
+    </button>
+    <button class="tab-btn" data-tab="history" onclick="App.switchTab('history')">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">Historique</span>
+      <span class="tab-badge hidden" id="tab-history-badge">0</span>
+    </button>
+    <button class="tab-btn" data-tab="info" onclick="App.switchTab('info')">
+      <span class="tab-icon">ℹ️</span>
+      <span class="tab-label">Info</span>
+    </button>
+    <button class="tab-btn" data-tab="admin-claims" id="admin-tab-btn" style="display:none;" onclick="App.switchTab('admin-claims')">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">Demandes</span>
+      <span class="tab-badge hidden" id="admin-claims-badge">0</span>
+    </button>
+    <button class="tab-btn" data-tab="afrx" id="afrx-tab-btn" style="display:none;" onclick="App.switchTab('afrx')">
+      <span class="tab-icon">🔥</span>
+      <span class="tab-label">AFRX</span>
+    </button>
+    <button class="tab-btn" data-tab="uscadx" id="uscadx-tab-btn" style="display:none;" onclick="App.switchTab('uscadx')">
+      <span class="tab-icon">💳</span>
+      <span class="tab-label">USCADX</span>
+    </button>
+  </nav>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main-container">
+
+    <!-- No MetaMask message -->
+    <div class="no-metamask-msg hidden" id="no-metamask-msg">
+      <div class="no-mm-icon">🦊</div>
+      <h2>MetaMask Requis</h2>
+      <p>Installez l'extension MetaMask pour utiliser USDT Sender en mode réel.</p>
+      <a href="https://metamask.io/download/" target="_blank" class="btn-install-mm">
+        ⬇ Installer MetaMask
+      </a>
+    </div>
+
+    <!-- Connect Prompt -->
+    <div class="connect-prompt card" id="connect-prompt">
+      <div class="connect-prompt-icon">💼</div>
+      <h2>Connectez votre Wallet</h2>
+      <p id="connect-prompt-copy">Connectez TronLink pour envoyer des USDT sur TRON Mainnet. Transactions visibles sur TronScan.</p>
+      <div class="connect-prompt-features">
+        <div class="feature-item" id="feature-item-1">🔴 Mode Réel — transactions on-chain TRON</div>
+        <div class="feature-item" id="feature-item-2">◈ Tokens disponibles</div>
+        <div class="feature-item" id="feature-item-3">🔍 Visible sur TronScan</div>
+        <div class="feature-item">🔒 Aucun swap · Aucun retrait fiat</div>
+      </div>
+      <div class="wallet-connect-buttons">
+        <button class="btn-connect-metamask" id="connect-metamask-btn" onclick="App.connectWallet('metamask')">
+          🦊 MetaMask
+        </button>
+        <button class="btn-connect-trust" id="connect-trust-btn" onclick="App.connectWallet('trust')">
+          🔵 Trust Wallet
+        </button>
+        <button id="connect-tronlink-btn" class="btn-connect-metamask" style="background:linear-gradient(135deg,#ef0027,#b0001c);" onclick="App.connectWallet('tronlink')">
+          🔴 TronLink
+        </button>
+      </div>
+      <button id="connect-account-btn" onclick="App.connectWithAccount()" style="display:none;width:100%;margin-top:12px;background:linear-gradient(135deg,#26a17b,#1a7a5a);color:#fff;border:none;border-radius:12px;padding:13px 24px;font-size:15px;font-weight:700;cursor:pointer;">👤 Accéder à mon compte</button>
+      <p class="connect-hint" id="connect-hint-text">Réseau requis: <strong>TRON Mainnet</strong> — connectez TronLink pour USDT</p>
+    </div>
+
+    <!-- ===== WALLET OVERVIEW ===== -->
+    <div class="card wallet-section hidden" id="wallet-section">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">💼</span> Aperçu du Wallet
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="last-refresh" style="font-size:11px; color:var(--text-muted);"></span>
+          <button id="refresh-btn" class="btn-refresh" title="Actualiser le solde">🔄</button>
+          <div class="wallet-badge"><span>●</span> Connecté</div>
+        </div>
+      </div>
+
+      <div class="wallet-info-grid">
+        <div class="wallet-stat">
+          <div class="wallet-stat-label" id="token-balance-label">Solde USDT</div>
+          <div class="wallet-stat-value">
+            <span id="usdt-balance">0.00</span>
+            <span class="currency" id="token-currency">USDT</span>
+          </div>
+          <div class="wallet-stat-sub" id="usd-value">≈ $0.00 USD</div>
+        </div>
+        <div class="wallet-stat" id="usdc-stat" style="display:none;">
+          <div class="wallet-stat-label" style="color:#2775ca;">Solde USDC</div>
+          <div class="wallet-stat-value">
+            <span id="usdc-balance">0.00</span>
+            <span class="currency" style="color:#2775ca;">USDC</span>
+          </div>
+          <div class="wallet-stat-sub" id="usdc-usd-value">≈ $0.00 USD</div>
+        </div>
+        <div class="wallet-stat">
+          <div class="wallet-stat-label" id="eth-stat-label">Équivalent ETH</div>
+          <div class="wallet-stat-value">
+            <span id="eth-balance">0.0000</span>
+            <span class="currency" id="eth-currency">ETH</span>
+          </div>
+          <div class="wallet-stat-sub" id="eth-usd-value">Pour les frais de transaction</div>
+        </div>
+        <div class="wallet-stat">
+          <div class="wallet-stat-label">Réseau</div>
+          <div class="wallet-stat-value" style="font-size:16px;" id="network-value">Mainnet</div>
+          <div class="wallet-stat-sub" id="network-sub">ERC-20 · Chain ID: 1 · Tenderly</div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="wallet-actions">
+        <button id="faucet-btn" class="btn-faucet" onclick="App.claimFaucet()">
+          🚰 Réclamer USDT/USDC
+        </button>
+        <button id="add-token-btn" class="btn-add-token" onclick="App.addTokenToMetaMask()">
+          🦊 Ajouter à MetaMask
+        </button>
+        <button id="payment-link-btn" class="btn-payment-link" onclick="App.copyPaymentLink()">
+          🔗 Lien de paiement
+        </button>
+        <button id="install-app-btn" class="btn-install-app hidden" onclick="App.installPWA()">
+          📲 Installer l'App
+        </button>
+      </div>
+
+      <!-- Wallet Address -->
+      <div class="wallet-address-box">
+        <div style="flex:1; min-width:0;">
+          <div class="wallet-address-label">Adresse Connectée</div>
+          <div class="wallet-address-value" id="wallet-address">—</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div class="wallet-badge" id="wallet-short">—</div>
+          <button id="copy-addr-btn" class="btn-copy-addr" onclick="App.copyAddress()">📋 Copier</button>
+        </div>
+      </div>
+
+      <!-- Wallet Name (Prénom / Nom) -->
+      <div class="wallet-address-box" style="flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:13px; color:var(--text-muted);">👤 Nom du Wallet :</span>
+          <span id="wallet-name-display" style="font-size:13px; color:var(--text); font-weight:600;">—</span>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input
+            id="wallet-firstname-input"
+            type="text"
+            placeholder="Prénom"
+            maxlength="50"
+            style="flex:1; min-width:100px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:7px 10px; color:var(--text); font-size:13px;"
+          />
+          <input
+            id="wallet-lastname-input"
+            type="text"
+            placeholder="Nom de famille"
+            maxlength="50"
+            style="flex:1; min-width:100px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:7px 10px; color:var(--text); font-size:13px;"
+          />
+          <button id="wallet-name-save-btn" onclick="App.saveWalletName()" style="background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm); padding:7px 14px; font-size:13px; cursor:pointer; font-weight:600;">💾 Sauvegarder</button>
+        </div>
+      </div>
+
+      <!-- Receive Section -->
+      <div class="receive-section">
+        <div class="receive-label" id="receive-label">📥 Recevoir des USDT — Partagez cette adresse:</div>
+        <div class="receive-address-box">
+          <span id="receive-address" class="receive-address">—</span>
+          <button class="btn-copy-small" onclick="App.copyAddress()">Copier</button>
+        </div>
+        <div class="receive-hint" id="receive-hint">Envoyez des USDT à cette adresse depuis n'importe quel wallet Ethereum</div>
+        <div class="qr-code-wrapper">
+          <div id="qr-code-container"></div>
+          <div class="qr-code-label">Scanner pour recevoir</div>
+        </div>
+      </div>
+
+      <!-- Deploy Warning Banner (inside wallet card) -->
+      <div class="deploy-warning-banner hidden" id="deploy-warning-banner">
+        <div class="deploy-warning-inner">
+          <span class="deploy-warning-icon">⚠️</span>
+          <div class="deploy-warning-text">
+            <strong id="deploy-warning-title">Contrat non déployé</strong>
+            <span id="deploy-warning-msg">Lancez le script de déploiement pour activer les transferts.</span>
+          </div>
+          <button class="deploy-warning-close" onclick="document.getElementById('deploy-warning-banner').classList.add('hidden')" title="Fermer">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SEND FORM ===== -->
+    <div class="card send-section hidden" id="send-section">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">📤</span> <span id="send-title-symbol">Envoyer USDT</span>
+        </div>
+        <div class="real-mode-tag">🟢 Mode Réel · On-Chain</div>
+      </div>
+
+      <form id="send-form" autocomplete="off">
+        <div class="form-group">
+          <label class="form-label" for="recipient-input">Adresse du Destinataire</label>
+          <div style="display:flex; gap:8px;">
+          <input
+            type="text"
+            id="recipient-input"
+            class="form-input"
+            placeholder="0x... adresse Ethereum"
+            spellcheck="false"
+            style="flex:1;"
+          />
+          <button type="button" class="btn-paste" onclick="App.pasteAddress()" title="Coller depuis le presse-papiers">📋 Coller</button>
+          </div>
+          <div class="address-indicator" id="address-indicator"></div>
+          <!-- Contacts -->
+          <div class="contacts-bar">
+            <button type="button" class="btn-save-contact" onclick="App.saveContact()">⭐ Sauvegarder</button>
+            <div class="contacts-dropdown-wrap" id="contacts-dropdown-wrap" style="display:none;">
+              <button type="button" class="btn-contacts-toggle" onclick="App.toggleContactsDropdown()">📒 Contacts <span id="contacts-count">0</span></button>
+              <div class="contacts-dropdown hidden" id="contacts-dropdown"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="amount-input">Montant</label>
+          <div class="amount-wrapper">
+            <input
+              type="number"
+              id="amount-input"
+              class="form-input"
+              placeholder="0.00"
+              min="0.000001"
+              step="any"
+            />
+            <div class="amount-suffix">
+              <span class="currency-tag" id="amount-currency-tag">USDT</span>
+              <button type="button" class="btn-max" id="max-btn">MAX</button>
+            </div>
+          </div>
+          <div class="amount-usd" id="amount-usd">≈ $0.00 USD</div>
+          <div class="quick-amounts">
+            <button type="button" class="btn-quick-amount" onclick="App.setQuickAmount(0.25)">25%</button>
+            <button type="button" class="btn-quick-amount" onclick="App.setQuickAmount(0.50)">50%</button>
+            <button type="button" class="btn-quick-amount" onclick="App.setQuickAmount(0.75)">75%</button>
+            <button type="button" class="btn-quick-amount" onclick="App.setQuickAmount(1)">MAX</button>
+          </div>
+          <div class="send-balance-hint" id="send-balance-hint"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="note-input">Note <span style="color:var(--text-muted); font-weight:400;">(optionnel)</span></label>
+          <input
+            type="text"
+            id="note-input"
+            class="form-input"
+            placeholder="Ajouter un mémo..."
+            maxlength="100"
+          />
+        </div>
+
+        <button type="submit" class="btn-send">
+          <span class="send-icon">📤</span>
+          <span id="send-button-label">Envoyer USDT</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- ===== TRANSACTION HISTORY ===== -->
+    <div class="card history-section hidden" id="send-section-history">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="icon">📋</span> Historique des Transactions
+          <span class="history-count" id="history-count">0</span>
+        </div>
+        <div class="history-header-actions">
+          <button class="btn-clear" id="export-history">Exporter CSV</button>
+          <button class="btn-clear" id="clear-history">Effacer</button>
+        </div>
+      </div>
+      <div class="history-toolbar">
+        <input type="text" id="history-search" class="form-input history-search" placeholder="Rechercher: hash, note, adresse..." />
+        <select id="history-filter-type" class="network-select history-filter-select">
+          <option value="all">Tous les types</option>
+          <option value="send">Envois</option>
+          <option value="receive">Réceptions</option>
+          <option value="faucet">Faucet</option>
+        </select>
+        <select id="history-filter-network" class="network-select history-filter-select">
+          <option value="all">Tous les réseaux</option>
+          <option value="tron">TRON</option>
+          <option value="polygon">Polygon</option>
+          <option value="tenderly">Tenderly</option>
+          <option value="sepolia">Sepolia</option>
+        </select>
+        <select id="history-filter-token" class="network-select history-filter-select">
+          <option value="all">Tous les tokens</option>
+          <option value="USDT">USDT</option>
+          <option value="USDC">USDC</option>
+        </select>
+      </div>
+      <div class="history-stats" id="history-stats"></div>
+      <div class="history-list" id="tx-history">
+        <div class="history-empty" id="history-empty">
+          <div style="font-size:40px; margin-bottom:12px;">📭</div>
+          <div style="font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Aucune transaction</div>
+          <div style="font-size:13px; color:var(--text-muted);">Vos transactions apparaîtront ici après votre premier envoi.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== INFO SECTION ===== -->
+    <div class="card info-section hidden" id="send-section-info">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">ℹ️</span> Informations</div>
+      </div>
+      <ul class="info-list" id="info-list">
+        <!-- Dynamically updated by App.updateInfoSection() -->
+      </ul>
+    </div>
+
+    <!-- ===== BALANCE CHECKER ===== -->
+    <div class="card balance-checker-section hidden" id="balance-checker-section">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🔍</span> Vérifier un Solde</div>
+        <span class="tag-badge">Outil Pédagogique</span>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+      Entrez n'importe quelle adresse Ethereum pour vérifier son solde USDT réel sur Tenderly Mainnet.
+      </p>
+      <div class="form-group" style="margin-bottom:12px;">
+        <div style="display:flex; gap:10px;">
+          <input
+            type="text"
+            id="checker-input"
+            class="form-input"
+            placeholder="0x... adresse à vérifier"
+            spellcheck="false"
+            style="flex:1;"
+          />
+          <button type="button" id="check-balance-btn" class="btn-check">Vérifier</button>
+        </div>
+      </div>
+      <div id="checker-result" class="checker-result"></div>
+    </div>
+
+    <!-- ===== ADMIN CLAIMS ===== -->
+    <div class="card hidden" id="admin-claims-section">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📋</span> Demandes Client</div>
+        <button onclick="App.loadClaimRequests()" style="background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;cursor:pointer;">🔄 Actualiser</button>
+      </div>
+      <div id="admin-claims-list" style="margin-top:8px;">
+        <div style="text-align:center;color:var(--text-muted);padding:40px 0;">Chargement...</div>
+      </div>
+    </div>
+
+    <!-- ===== AFRX TAB ===== -->
+    <div class="card hidden" id="afrx-section">
+      <div class="card-header">
+        <div class="card-title">
+          <img src="/afrx-logo.png" alt="AFRX" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'" />
+          AfriChainX <span style="color:#2ecc71;">AFRX</span>
+        </div>
+        <a href="/afrx.html" target="_blank" style="font-size:12px;color:var(--text-muted);text-decoration:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;">📄 Page publique ↗</a>
+      </div>
+
+      <!-- Solde AFRX -->
+      <div class="wallet-info-grid" style="margin-bottom:16px;">
+        <div class="wallet-stat" style="border:1px solid rgba(46,204,113,0.3);background:rgba(46,204,113,0.05);">
+          <div class="wallet-stat-label" style="color:#2ecc71;">Solde AFRX</div>
+          <div class="wallet-stat-value">
+            <span id="afrx-balance">0.00</span>
+            <span class="currency" style="color:#2ecc71;">AFRX</span>
+          </div>
+          <div class="wallet-stat-sub" id="afrx-usd-value">≈ $0.00 USD</div>
+        </div>
+        <div class="wallet-stat">
+          <div class="wallet-stat-label">Prix AFRX</div>
+          <div class="wallet-stat-value" style="font-size:18px;">
+            $<span id="afrx-price">—</span>
+          </div>
+          <div class="wallet-stat-sub" id="afrx-price-source">SunSwap — en attente</div>
+        </div>
+        <div class="wallet-stat">
+          <div class="wallet-stat-label">Supply totale</div>
+          <div class="wallet-stat-value" style="font-size:16px;">1B</div>
+          <div class="wallet-stat-sub">1 000 000 000 AFRX</div>
+        </div>
+        <div class="wallet-stat">
+          <div class="wallet-stat-label">Contract</div>
+          <div class="wallet-stat-value" style="font-size:11px;word-break:break-all;" id="afrx-contract-display">Non déployé</div>
+          <div class="wallet-stat-sub"><a id="afrx-tronscan-link" href="#" target="_blank" style="color:var(--text-muted);">TronScan ↗</a></div>
+        </div>
+      </div>
+
+      <!-- Acheter AFRX avec TRX -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#2ecc71;">🛒 Acheter AFRX</div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div style="flex:1;min-width:120px;">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Montant TRX</label>
+            <input id="afrx-buy-trx" type="number" min="0" step="any" placeholder="ex: 100" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:15px;" oninput="App.updateAfrxBuyEstimate()" />
+          </div>
+          <div style="flex:1;min-width:120px;">
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Vous recevrez</label>
+            <div id="afrx-buy-estimate" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:15px;color:#2ecc71;font-weight:700;">— AFRX</div>
+          </div>
+          <button onclick="App.buyAfrx()" style="background:linear-gradient(135deg,#2ecc71,#d4a017);color:#111;border:none;border-radius:var(--radius-sm);padding:10px 20px;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap;">Acheter ▸</button>
+        </div>
+        <div id="afrx-buy-status" style="margin-top:8px;font-size:12px;color:var(--text-muted);min-height:18px;"></div>
+      </div>
+
+      <!-- Envoyer AFRX -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#2ecc71;">📤 Envoyer AFRX</div>
+        <div style="display:flex;gap:10px;flex-direction:column;">
+          <input id="afrx-send-to" type="text" placeholder="Adresse TRON destinataire (T...)" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;" />
+          <div style="display:flex;gap:10px;align-items:center;">
+            <input id="afrx-send-amount" type="number" min="0" step="any" placeholder="Montant AFRX" style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:15px;" />
+            <button onclick="App.sendAfrx()" style="background:linear-gradient(135deg,#2ecc71,#1a7a5a);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;">Envoyer</button>
+          </div>
+          <div id="afrx-send-status" style="font-size:12px;color:var(--text-muted);min-height:18px;"></div>
+        </div>
+      </div>
+
+      <!-- SunSwap -->
+      <div style="background:rgba(46,204,113,0.05);border:1px solid rgba(46,204,113,0.2);border-radius:var(--radius);padding:14px;text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#2ecc71;margin-bottom:6px;">🌊 Échanger sur SunSwap</div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Échangez TRX ↔ AFRX sur le DEX SunSwap (disponible après ajout de liquidité)</p>
+        <a id="afrx-sunswap-link" href="https://sun.io/#/swap" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#ff6b35,#f7c59f);color:#111;font-weight:700;font-size:13px;padding:8px 20px;border-radius:var(--radius-sm);text-decoration:none;">🌊 Ouvrir SunSwap ↗</a>
+      </div>
+    </div>
+
+    <!-- ===== USCADX TAB ===== -->
+    <div class="card hidden" id="uscadx-section">
+      <div class="card-header">
+        <div class="card-title">
+          <span style="color:#2775ca;font-size:20px;">💳</span>&nbsp;
+          USCA Dollar X <span style="color:#2775ca;">USCADX</span>
+        </div>
+        <a href="/uscadx" target="_blank" style="font-size:12px;color:var(--text-muted);text-decoration:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;">📄 Page publique ↗</a>
+      </div>
+
+      <!-- Solde + Contract -->
+      <div class="wallet-info-grid" style="margin-bottom:16px;">
+        <div class="wallet-stat" style="border:1px solid rgba(39,117,202,0.3);background:rgba(39,117,202,0.05);">
+          <div class="wallet-stat-label" style="color:#2775ca;">Solde USCADX</div>
+          <div class="wallet-stat-value">
+            <span id="uscadx-balance">0.00</span>
+            <span class="currency" style="color:#2775ca;">USCADX</span>
+          </div>
+          <div class="wallet-stat-sub" id="uscadx-usd-value">≈ $0.00 USD</div>
+        </div>
+        <div class="wallet-stat">
+          <div class="wallet-stat-label">Supply</div>
+          <div class="wallet-stat-value" style="font-size:16px;">1T</div>
+          <div class="wallet-stat-sub">1 000 000 000 000 USCADX</div>
+        </div>
+        <div class="wallet-stat">
+          <div class="wallet-stat-label">Faucet</div>
+          <div class="wallet-stat-value" style="font-size:16px;">500M</div>
+          <div class="wallet-stat-sub">500 000 000 USCADX / adresse</div>
+        </div>
+        <div class="wallet-stat">
+          <div class="wallet-stat-label">Contract</div>
+          <div class="wallet-stat-value" style="font-size:11px;word-break:break-all;" id="uscadx-contract-display">Non déployé</div>
+          <div class="wallet-stat-sub"><a id="uscadx-tronscan-link" href="#" target="_blank" style="color:var(--text-muted);">TronScan ↗</a></div>
+        </div>
+      </div>
+
+      <!-- Recevoir USCADX — mobile receive block -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:#2775ca;">📲 Recevoir USCADX</div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <!-- QR code -->
+          <div id="uscadx-qr" style="width:120px;height:120px;flex-shrink:0;background:var(--bg-primary);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:11px;border:1px solid var(--border);">QR</div>
+          <div style="flex:1;min-width:160px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Ton adresse TRON</div>
+            <div id="uscadx-receive-address" style="font-size:12px;word-break:break-all;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-family:monospace;">—</div>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+              <button onclick="App.copyUscadxAddress()" style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text);">📋 Copier</button>
+              <button onclick="App.shareUscadxReceive()" id="uscadx-share-btn" style="flex:1;background:linear-gradient(135deg,#2775ca,#1a52a8);border:none;border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;color:#fff;">📱 Partager</button>
+            </div>
+            <!-- Trust Wallet deeplink -->
+            <a id="uscadx-trust-link" href="#" target="_blank" style="display:block;margin-top:8px;text-align:center;background:rgba(39,117,202,0.1);border:1px solid rgba(39,117,202,0.3);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;font-weight:600;color:#2775ca;text-decoration:none;">🔵 Ajouter USCADX à Trust Wallet</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Faucet -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#2775ca;">🚰 Faucet USCADX</div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Réclame 500 000 000 USCADX gratuits (une seule fois par adresse)</p>
+        <button id="uscadx-faucet-btn" onclick="App.claimUscadxFaucet()" style="width:100%;background:linear-gradient(135deg,#2775ca,#1a52a8);color:#fff;border:none;border-radius:var(--radius-sm);padding:12px 20px;font-size:15px;font-weight:700;cursor:pointer;">🚰 Réclamer 500M USCADX</button>
+        <div id="uscadx-faucet-status" style="margin-top:8px;font-size:12px;color:var(--text-muted);min-height:18px;"></div>
+      </div>
+
+      <!-- Envoyer USCADX -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#2775ca;">📤 Envoyer USCADX</div>
+        <div style="display:flex;gap:10px;flex-direction:column;">
+          <input id="uscadx-send-to" type="text" placeholder="Adresse TRON destinataire (T...)" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;" />
+          <div style="display:flex;gap:10px;align-items:center;">
+            <input id="uscadx-send-amount" type="number" min="0" step="any" placeholder="Montant USCADX" style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:15px;" />
+            <button onclick="App.sendUscadx()" style="background:linear-gradient(135deg,#2775ca,#1a52a8);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;">Envoyer</button>
+          </div>
+          <div id="uscadx-send-status" style="font-size:12px;color:var(--text-muted);min-height:18px;"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <p>USDT/USDC Sender · TRON · Polygon · Tenderly · Sepolia · <a href="https://tronscan.org" target="_blank">TronScan ↗</a> · <a href="https://polygonscan.com" target="_blank">Polygonscan ↗</a> · <a href="https://dashboard.tenderly.co/explorer/vnet/73648ae7-6c02-4aa8-9e6b-563cd66f8d3c" target="_blank">Tenderly ↗</a> · <a href="https://sepolia.etherscan.io" target="_blank">Sepolia ↗</a></p>
+  </footer>
+
+  <!-- ===== TRANSACTION MODAL ===== -->
+  <div class="modal-overlay hidden" id="tx-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">Confirmer la Transaction</div>
+        <button class="btn-close" id="close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- STEP 1: Confirm -->
+        <div id="confirm-step">
+          <div class="confirm-details">
+            <div class="confirm-amount-big">
+              <div>
+                <span class="amount-num" id="confirm-amount">0</span>
+                <span class="amount-cur">USDT</span>
+              </div>
+              <div class="amount-usd-eq" id="confirm-usd">≈ $0.00 USD</div>
+            </div>
+            <div class="confirm-row"><span class="confirm-row-label">De</span><span class="confirm-row-value" id="confirm-from">—</span></div>
+            <div class="confirm-row"><span class="confirm-row-label">À</span><span class="confirm-row-value" id="confirm-to">—</span></div>
+            <div class="confirm-row"><span class="confirm-row-label">Réseau</span><span class="confirm-row-value" id="confirm-network">Tenderly Mainnet</span></div>
+            <div class="confirm-row"><span class="confirm-row-label">Token</span><span class="confirm-row-value" id="confirm-token">USDT (TRC-20)</span></div>
+            <div class="confirm-row"><span class="confirm-row-label">Frais de gaz</span><span class="confirm-row-value" id="confirm-gas">~0.0001 ETH</span></div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-cancel" id="cancel-send-btn">Annuler</button>
+            <button class="btn-confirm" id="confirm-send-btn">✓ Confirmer & Envoyer</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Processing -->
+        <div id="processing-step" class="hidden">
+          <div class="processing-content">
+            <div class="processing-spinner"></div>
+            <div class="processing-title">Transaction en cours</div>
+            <div class="processing-status" id="processing-status">Initialisation...</div>
+            <div class="progress-container">
+              <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="confirm-counter hidden" id="confirm-counter">
+              🔗 Confirmations: <strong id="confirm-count">0/1</strong>
+            </div>
+            <div class="pending-hash-row hidden" id="pending-hash-row">
+              Tx Hash: <span class="pending-hash" id="pending-hash">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Success -->
+        <div id="success-step" class="hidden">
+          <div class="success-content">
+            <div class="success-icon">✓</div>
+            <div class="success-title">Transaction Confirmée!</div>
+            <div class="success-subtitle" id="success-subtitle">Vos USDT ont été envoyés avec succès.</div>
+            <div class="success-amount-display">
+              <div class="s-amount" id="tx-amount-display">0 USDT</div>
+              <div class="s-to">Envoyé à <span id="tx-to-display">—</span></div>
+            </div>
+            <div class="success-details">
+              <div class="success-detail-row"><span class="s-label">Bloc</span><span class="s-value" id="tx-block-display">—</span></div>
+              <div class="success-detail-row"><span class="s-label">Gas</span><span class="s-value" id="tx-gas-display">—</span></div>
+              <div class="success-detail-row s-eth-row">
+                <span class="s-label">Équiv. ETH</span>
+                <span class="s-value s-eth-value" id="tx-eth-display">—</span>
+              </div>
+              <div class="success-detail-row"><span class="s-label">Réseau</span><span class="s-value" id="tx-network-display">—</span></div>
+              <div class="success-detail-row"><span class="s-label">Statut</span><span class="s-value" style="color:var(--success);">✓ Confirmé</span></div>
+            </div>
+            <div class="tx-hash-box">
+              <div>
+                <div class="tx-hash-label">Hash de Transaction</div>
+                <div class="tx-hash-display" id="tx-hash-display">—</div>
+              </div>
+              <button class="btn-copy" id="copy-hash">Copier</button>
+            </div>
+            <div class="success-actions">
+              <button class="btn-etherscan" id="view-etherscan">🔍 Voir sur Explorer</button>
+              <button class="btn-new-tx" id="new-tx-btn">+ Nouvelle Transaction</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LOADING OVERLAY ===== -->
+  <div class="loading-overlay hidden" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">Chargement...</div>
+  </div>
+
+  <!-- ===== NOTIFICATIONS ===== -->
+  <div id="notification-container"></div>
+
+  <!-- ===== WALLET SELECTOR MODAL ===== -->
+  <div class="modal-overlay hidden" id="wallet-selector-modal">
+    <div class="modal-box wallet-selector-box">
+      <div class="modal-header">
+        <div class="modal-title">🔗 Choisir un Wallet</div>
+        <button class="btn-close" onclick="document.getElementById('wallet-selector-modal').classList.add('hidden')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px; text-align:center;">
+          Plusieurs wallets détectés. Choisissez celui à utiliser:
+        </p>
+        <div id="wallet-selector-list" class="wallet-selector-list"></div>
+        <div class="wallet-install-links">
+          <span style="font-size:12px; color:var(--text-muted);">Pas encore installé?</span>
+          <a href="https://metamask.io/download/" target="_blank" class="wallet-install-link">🦊 MetaMask</a>
+          <a href="https://trustwallet.com/browser-extension" target="_blank" class="wallet-install-link">🔵 Trust Wallet</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ETH FAUCET HELP MODAL ===== -->
+  <div class="modal-overlay hidden" id="eth-faucet-modal">
+    <div class="modal-box" style="max-width:460px;">
+      <div class="modal-header">
+        <div class="modal-title">⛽ ETH Requis pour le Gaz</div>
+        <button class="btn-close" onclick="document.getElementById('eth-faucet-modal').classList.add('hidden')">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Warning box -->
+        <div style="background:rgba(243,156,18,0.1); border:1px solid var(--warning); border-radius:8px; padding:14px 16px; margin-bottom:20px; display:flex; gap:12px; align-items:flex-start;">
+          <span style="font-size:22px; flex-shrink:0;">⚠️</span>
+          <div>
+            <div style="font-size:14px; font-weight:700; color:#f5c842; margin-bottom:4px;">ETH requis pour les frais de gaz</div>
+            <div style="font-size:13px; color:var(--text-secondary); line-height:1.6;">
+              Pour <strong>envoyer des USDT</strong>, vous avez besoin d'un peu d'<strong>ETH</strong> pour payer les frais de gaz (~0.001 ETH). Obtenez-en gratuitement via Tenderly.
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Copy address -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+            Étape 1 — Copiez votre adresse wallet
+          </div>
+          <div style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:10px;">
+            <span id="eth-modal-address" style="flex:1; font-size:12px; color:var(--text-secondary); font-family:'Courier New',monospace; word-break:break-all;">—</span>
+            <button onclick="navigator.clipboard.writeText(document.getElementById('eth-modal-address').textContent).then(()=>App.showNotification('Adresse copiée!','success'))" style="background:var(--bg-card); border:1px solid var(--border); color:var(--text-secondary); border-radius:6px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">📋 Copier</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Tenderly ETH faucet -->
+        <div style="margin-bottom:20px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">
+            Étape 2 — Obtenez de l'ETH via Tenderly
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <a href="https://dashboard.tenderly.co/explorer/vnet/73648ae7-6c02-4aa8-9e6b-563cd66f8d3c" target="_blank" class="eth-faucet-link">
+              <span style="font-size:18px;">🟣</span>
+              <div style="flex:1;">
+                <div style="font-size:14px; font-weight:700; color:var(--text-primary);">Tenderly Dashboard</div>
+                <div style="font-size:12px; color:var(--text-muted);">Virtual TestNet → Faucet → Entrez votre adresse</div>
+              </div>
+              <span style="color:var(--text-muted);">↗</span>
+            </a>
+            <a href="https://faucet.quicknode.com/ethereum/mainnet" target="_blank" class="eth-faucet-link">
+              <span style="font-size:18px;">⚡</span>
+              <div style="flex:1;">
+                <div style="font-size:14px; font-weight:700; color:var(--text-primary);">QuickNode Faucet</div>
+                <div style="font-size:12px; color:var(--text-muted);">ETH gratuit — rapide et sans inscription</div>
+              </div>
+              <span style="color:var(--text-muted);">↗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Step 3: Come back -->
+        <div style="background:var(--accent-light); border:1px solid rgba(38,161,123,0.4); border-radius:8px; padding:12px 14px; font-size:13px; color:var(--text-secondary); margin-bottom:20px;">
+          <strong style="color:var(--usdt-green);">Étape 3</strong> — Une fois l'ETH reçu, revenez ici et réessayez l'envoi USDT.
+        </div>
+
+        <button onclick="document.getElementById('eth-faucet-modal').classList.add('hidden')" style="width:100%; background:linear-gradient(135deg,var(--usdt-green),#1a8a65); color:white; border:none; border-radius:8px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;">
+          ✓ Compris — Je vais obtenir de l'ETH
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAYMENT LINK MODAL ===== -->
+  <div class="modal-overlay hidden" id="payment-link-modal">
+    <div class="modal-box" style="max-width:460px;">
+      <div class="modal-header">
+        <div class="modal-title">🔗 Lien de paiement</div>
+        <button class="btn-close" onclick="document.getElementById('payment-link-modal').classList.add('hidden')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Partagez ce lien pour recevoir des USDT directement.</p>
+        <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <span id="payment-link-url" style="flex:1;font-size:11px;color:var(--text-secondary);word-break:break-all;font-family:'Courier New',monospace;"></span>
+          <button onclick="App.copyPaymentLinkFromModal()" style="background:var(--accent);border:none;color:white;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 Copier</button>
+        </div>
+        <div id="payment-qr-container" style="display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px;"></div>
+        <button onclick="document.getElementById('payment-link-modal').classList.add('hidden')" style="width:100%;background:linear-gradient(135deg,var(--usdt-green),#1a8a65);color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">✓ Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SCRIPTS ===== -->
+  <script>
+    // JWT Auth guard — redirect to login if not authenticated or not approved
+    (function () {
+      var token = localStorage.getItem('usdt_jwt');
+      if (!token) { window.location.href = '/landing.html'; return; }
+      try {
+        var payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp < Date.now() / 1000) {
+          localStorage.removeItem('usdt_jwt');
+          localStorage.removeItem('usdt_user');
+          window.location.href = '/login.html';
+          return;
+        }
+        if (payload.status !== 'approved') {
+          window.location.href = '/register.html?status=pending';
+          return;
+        }
+        // Inject usdtBalance from user profile into simulator localStorage
+        var userData = JSON.parse(localStorage.getItem('usdt_user') || '{}');
+        if (userData.tronAddress && userData.usdtBalance > 0) {
+          localStorage.setItem('usdt_balance_' + userData.tronAddress, String(userData.usdtBalance));
+        }
+      } catch (e) {
+        window.location.href = '/login.html';
+      }
+    })();
+  </script>
+  <script src="js/config.js?v=30"></script>
+  <script src="js/simulator.js?v=25"></script>
+  <script src="js/tracker.js?v=26"></script>
+  <script src="js/app.js?v=30"></script>
+  <script>
+    // Service Worker registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(function(e){ console.warn('SW:', e); });
+    }
+    // PWA install prompt
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window._pwaInstallPrompt = e;
+      var btn = document.getElementById('install-app-btn');
+      if (btn) btn.classList.remove('hidden');
+    });
+  </script>
+
+</body>
+</html>

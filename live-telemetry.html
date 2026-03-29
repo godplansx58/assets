@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Visitors + Actions</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    .telemetry-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 14px 40px;
+    }
+    .telemetry-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .telemetry-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .telemetry-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .telemetry-btn {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .telemetry-btn:hover { border-color: var(--accent); }
+    .telemetry-note {
+      margin-top: 6px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .telemetry-status-row {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .telemetry-status-badge {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      font-weight: 700;
+    }
+    .telemetry-status-badge.ok {
+      border-color: rgba(38, 161, 123, 0.5);
+      color: #65d6a8;
+    }
+    .telemetry-status-badge.warn {
+      border-color: rgba(243, 156, 18, 0.5);
+      color: #f5c842;
+    }
+    .telemetry-status-badge.err {
+      border-color: rgba(231, 76, 60, 0.5);
+      color: #ff8b7d;
+    }
+    .telemetry-empty {
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 14px;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="telemetry-wrap">
+    <div class="telemetry-topbar">
+      <h1 class="telemetry-title">📡 Live Visitors + Actions</h1>
+      <div class="telemetry-actions">
+        <a href="/index.html" class="telemetry-btn">← Retour App</a>
+        <button id="refresh-now" class="telemetry-btn" type="button">Actualiser</button>
+      </div>
+    </div>
+
+    <div class="card info-section" id="live-telemetry-panel">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📡</span> Flux Temps Réel</div>
+        <span class="tag-badge">Admin privé</span>
+      </div>
+      <div class="history-stats" id="live-telemetry-stats"></div>
+      <div class="live-top-actions" id="live-top-actions"></div>
+      <div class="history-list" id="live-telemetry-list"></div>
+      <div class="telemetry-status-row">
+        <span id="telemetry-health" class="telemetry-status-badge">Status: waiting...</span>
+        <span id="telemetry-latency" class="telemetry-status-badge">Latency: -- ms</span>
+        <span id="telemetry-last-ok" class="telemetry-status-badge">Last OK: --</span>
+      </div>
+      <p class="telemetry-note">Auto-refresh toutes les 5 secondes.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var ALLOWED_EMAIL = 'reussite522@gmail.com';
+      var token = localStorage.getItem('usdt_jwt');
+      var user;
+      try {
+        user = JSON.parse(localStorage.getItem('usdt_user') || '{}');
+      } catch (e) {
+        user = {};
+      }
+
+      if (!token) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      var email = String(user.email || '').toLowerCase();
+      if (email !== ALLOWED_EMAIL) {
+        window.location.href = '/index.html';
+        return;
+      }
+
+      var intervalId = null;
+
+      function setStatus(health, latencyMs, okTime) {
+        var healthEl = document.getElementById('telemetry-health');
+        var latencyEl = document.getElementById('telemetry-latency');
+        var okEl = document.getElementById('telemetry-last-ok');
+        if (!healthEl || !latencyEl || !okEl) return;
+
+        function latencyClass(ms) {
+          if (!(typeof ms === 'number' && Number.isFinite(ms))) return '';
+          if (ms < 500) return 'ok';
+          if (ms <= 1500) return 'warn';
+          return 'err';
+        }
+
+        var latencyLevel = latencyClass(latencyMs);
+        var effectiveHealth = health;
+        if (health === 'ok' && latencyLevel === 'warn') effectiveHealth = 'warn';
+        if (health === 'ok' && latencyLevel === 'err') effectiveHealth = 'err';
+
+        healthEl.className = 'telemetry-status-badge ' + (effectiveHealth || '');
+        if (effectiveHealth === 'ok') healthEl.textContent = 'Status: healthy';
+        else if (effectiveHealth === 'warn') healthEl.textContent = 'Status: degraded';
+        else if (effectiveHealth === 'err') healthEl.textContent = 'Status: critical';
+        else healthEl.textContent = 'Status: waiting...';
+
+        if (typeof latencyMs === 'number' && Number.isFinite(latencyMs)) {
+          var latencyLabel = latencyLevel === 'ok' ? 'fast' : latencyLevel === 'warn' ? 'normal' : 'slow';
+          latencyEl.textContent = 'Latency: ' + latencyMs + ' ms (' + latencyLabel + ')';
+          latencyEl.className = 'telemetry-status-badge ' + latencyLevel;
+        } else {
+          latencyEl.textContent = 'Latency: -- ms';
+          latencyEl.className = 'telemetry-status-badge';
+        }
+
+        okEl.textContent = 'Last OK: ' + (okTime || '--');
+        okEl.className = 'telemetry-status-badge ' + (okTime ? 'ok' : '');
+      }
+
+      function render(payload) {
+        var statsEl = document.getElementById('live-telemetry-stats');
+        var topEl = document.getElementById('live-top-actions');
+        var listEl = document.getElementById('live-telemetry-list');
+        if (!statsEl || !topEl || !listEl) return;
+
+        var stats = payload.stats || {};
+        statsEl.innerHTML =
+          '<div class="history-stat-item"><span>Events 15m</span><strong>' + (stats.eventsLast15m || 0) + '</strong></div>' +
+          '<div class="history-stat-item"><span>Sessions</span><strong>' + (stats.activeSessions || 0) + '</strong></div>' +
+          '<div class="history-stat-item"><span>Pages</span><strong>' + (stats.uniquePages || 0) + '</strong></div>' +
+          '<div class="history-stat-item"><span>Refresh</span><strong>5s</strong></div>';
+
+        var topActions = payload.topActions || [];
+        if (!topActions.length) {
+          topEl.innerHTML = '<div class="telemetry-empty">Aucune action pour le moment.</div>';
+        } else {
+          topEl.innerHTML = topActions.map(function (item) {
+            var key = item._id || {};
+            var title = (key.eventType || 'event') + ' · ' + (key.action || 'action') + ' · ' + (key.page || '/');
+            return '<div class="live-top-item"><span>' + title + '</span><strong>x' + item.count + '</strong></div>';
+          }).join('');
+        }
+
+        var events = payload.events || [];
+        if (!events.length) {
+          listEl.innerHTML = '<div class="telemetry-empty">Aucun event live pour le moment.</div>';
+          return;
+        }
+
+        listEl.innerHTML = events.map(function (ev) {
+          var when = ev.ts ? new Date(ev.ts).toLocaleTimeString('fr-FR') : '—';
+          var actor = ev.email || ev.userId || 'guest';
+          var wallet = ev.wallet || '—';
+          var location = ev.location || ev.city || '—';
+          return (
+            '<div class="live-event-row">' +
+              '<div class="live-event-head">' +
+                '<span class="live-event-type">' + (ev.eventType || 'event') + '</span>' +
+                '<span class="live-event-time">' + when + '</span>' +
+              '</div>' +
+              '<div class="live-event-body">' +
+                '<span><strong>User:</strong> ' + actor + '</span>' +
+                '<span><strong>Wallet:</strong> ' + wallet + '</span>' +
+                '<span><strong>IP:</strong> ' + (ev.ip || '—') + '</span>' +
+                '<span><strong>Ville:</strong> ' + location + '</span>' +
+                '<span><strong>Page:</strong> ' + (ev.page || '/') + '</span>' +
+                '<span><strong>Action:</strong> ' + (ev.action || '—') + '</span>' +
+                '<span><strong>Details:</strong> ' + (ev.details || '—') + '</span>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('');
+      }
+
+      async function fetchLive() {
+        var started = Date.now();
+        try {
+          var res = await fetch('/api/admin/live-telemetry', {
+            headers: { Authorization: 'Bearer ' + token },
+          });
+
+          if (res.status === 401 || res.status === 403) {
+            setStatus('err');
+            window.location.href = '/index.html';
+            return;
+          }
+          if (!res.ok) {
+            setStatus('warn', Date.now() - started);
+            return;
+          }
+
+          var data = await res.json();
+          render(data);
+          setStatus('ok', Date.now() - started, new Date().toLocaleTimeString('fr-FR'));
+        } catch (e) {
+          setStatus('err', Date.now() - started);
+        }
+      }
+
+      document.getElementById('refresh-now').addEventListener('click', fetchLive);
+      fetchLive();
+      intervalId = setInterval(fetchLive, 5000);
+
+      window.addEventListener('beforeunload', function () {
+        if (intervalId) clearInterval(intervalId);
+      });
+    })();
+  </script>
+</body>
+</html>

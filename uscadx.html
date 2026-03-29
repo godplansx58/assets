@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USCA Dollar X (USCADX) — Recevez de l'argent instantanément sur TRON</title>
+  <meta name="description" content="USCA Dollar X (USCADX) est un stablecoin TRC-20 sur TRON. Recevez de l'argent directement dans Trust Wallet, TronLink ou Exodus." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --blue:   #2775ca;
+      --blue2:  #1a52a8;
+      --dark:   #0d0f14;
+      --card:   #141820;
+      --border: rgba(39,117,202,0.18);
+      --text:   #f0f2f8;
+      --muted:  #7a8aaa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--dark); color: var(--text); line-height: 1.55; }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,15,20,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+    .brand-icon { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,var(--blue),var(--blue2)); display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0; }
+    .brand-name { font-size: 20px; font-weight: 800; }
+    .brand-name span { color: var(--blue); }
+    header nav { display:flex; gap:4px; }
+    header nav a {
+      color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500;
+      padding: 6px 14px; border-radius: 20px; transition: all .2s;
+    }
+    header nav a:hover { color: var(--text); background: rgba(39,117,202,0.1); }
+    .cta-header {
+      background: linear-gradient(135deg, var(--blue), var(--blue2));
+      color: #fff; font-weight: 800; font-size: 13px;
+      padding: 8px 18px; border-radius: 20px; text-decoration: none;
+      white-space: nowrap; transition: opacity .2s;
+    }
+    .cta-header:hover { opacity: .85; }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center; padding: 72px 24px 56px;
+      background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(39,117,202,0.14) 0%, transparent 70%);
+    }
+    .hero-icon {
+      width: 100px; height: 100px; border-radius: 50%;
+      border: 3px solid var(--blue);
+      box-shadow: 0 0 40px rgba(39,117,202,0.4);
+      background: linear-gradient(135deg,var(--blue),var(--blue2));
+      margin: 0 auto 24px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:42px; font-weight:900; color:#fff;
+    }
+    .hero h1 { font-size: clamp(2rem,5vw,3.5rem); font-weight: 900; line-height: 1.1; }
+    .hero h1 span { color: var(--blue); }
+    .hero .tagline { margin: 16px auto 0; max-width: 560px; font-size: 18px; color: var(--muted); }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue), var(--blue2));
+      color: #fff; font-weight: 800; font-size: 15px;
+      padding: 14px 32px; border-radius: 14px; text-decoration: none;
+      box-shadow: 0 4px 20px rgba(39,117,202,0.35); transition: transform .15s, box-shadow .15s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(39,117,202,0.5); }
+    .btn-secondary {
+      background: rgba(39,117,202,0.07); border: 1px solid var(--border);
+      color: var(--text); font-weight: 600; font-size: 15px;
+      padding: 14px 32px; border-radius: 14px; text-decoration: none; transition: background .2s;
+    }
+    .btn-secondary:hover { background: rgba(39,117,202,0.13); }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: rgba(39,117,202,0.04);
+    }
+    .stat-item {
+      flex: 1 1 180px; text-align: center; padding: 24px 20px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-value { font-size: 28px; font-weight: 800; color: var(--blue); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* ── SECTION ── */
+    .section { max-width: 960px; margin: 0 auto; padding: 64px 24px; }
+    .section-title { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .section-title span { color: var(--blue); }
+    .section-sub { color: var(--muted); font-size: 15px; margin-bottom: 36px; }
+
+    /* ── RECEIVE CARD ── */
+    .receive-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap;
+    }
+    .qr-block { flex-shrink: 0; text-align: center; }
+    #qr-contract { width: 160px; height: 160px; background: #fff; border-radius: 12px; display:flex;align-items:center;justify-content:center; }
+    .qr-label { font-size: 11px; color: var(--muted); margin-top: 8px; }
+    .receive-info { flex: 1; min-width: 220px; }
+    .receive-info h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+    .addr-box {
+      background: rgba(39,117,202,0.07); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 12px; font-family: monospace; word-break: break-all;
+      color: var(--blue); margin-bottom: 12px; min-height: 44px;
+    }
+    .copy-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg, var(--blue), var(--blue2));
+      color: #fff; font-weight: 700; font-size: 13px;
+      padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
+      transition: opacity .2s;
+    }
+    .copy-btn:hover { opacity: .85; }
+
+    /* ── WALLET BUTTONS ── */
+    .wallet-cards { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 36px; }
+    .wallet-card {
+      flex: 1 1 260px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+      transition: border-color .2s, transform .15s;
+    }
+    .wallet-card:hover { border-color: var(--blue); transform: translateY(-3px); }
+    .wallet-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .wallet-card-icon { width: 44px; height: 44px; border-radius: 12px; display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0; }
+    .wallet-card-name { font-size: 16px; font-weight: 700; }
+    .wallet-steps { list-style: none; padding: 0; }
+    .wallet-steps li {
+      font-size: 13px; color: var(--muted); padding: 6px 0;
+      display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .wallet-steps li:last-child { border-bottom: none; }
+    .step-num { width: 20px; height: 20px; border-radius: 50%; background: rgba(39,117,202,0.2); color: var(--blue); font-size: 11px; font-weight: 700; display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px; }
+    .wallet-link {
+      display: block; margin-top: 14px;
+      background: linear-gradient(135deg, var(--blue), var(--blue2));
+      color: #fff; text-align: center; font-weight: 700; font-size: 13px;
+      padding: 10px 16px; border-radius: 10px; text-decoration: none; transition: opacity .2s;
+    }
+    .wallet-link:hover { opacity: .85; }
+
+    /* ── STEPS SECTION ── */
+    .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .step-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px;
+      text-align: center;
+    }
+    .step-card-num { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg,var(--blue),var(--blue2)); color:#fff; font-size:20px; font-weight:800; display:flex;align-items:center;justify-content:center;margin:0 auto 16px; }
+    .step-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .step-card p { font-size: 13px; color: var(--muted); }
+
+    /* ── FAUCET ── */
+    .faucet-banner {
+      background: linear-gradient(135deg, rgba(39,117,202,0.15), rgba(26,82,168,0.1));
+      border: 1px solid var(--border); border-radius: 20px; padding: 40px 32px; text-align: center;
+    }
+    .faucet-banner h2 { font-size: 26px; font-weight: 800; margin-bottom: 12px; }
+    .faucet-banner h2 span { color: var(--blue); }
+    .faucet-banner p { color: var(--muted); font-size: 15px; margin-bottom: 24px; max-width: 480px; margin-left:auto;margin-right:auto; }
+
+    /* ── TOKENOMICS ── */
+    .tokenomics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .tk-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px;
+    }
+    .tk-card-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+    .tk-card-value { font-size: 22px; font-weight: 800; color: var(--blue); }
+    .tk-card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 32px 24px; text-align: center;
+      font-size: 13px; color: var(--muted);
+    }
+    footer a { color: var(--blue); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .receive-card { padding: 20px; gap: 20px; }
+      #qr-contract { width: 120px; height: 120px; }
+      .section { padding: 48px 16px; }
+      .hero { padding: 52px 16px 40px; }
+      header nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <a class="brand" href="/">
+      <div class="brand-icon">$</div>
+      <div class="brand-name">USCA<span>DX</span></div>
+    </a>
+    <nav>
+      <a href="#receive">Recevoir</a>
+      <a href="#wallets">Wallets</a>
+      <a href="#tokenomics">Tokenomics</a>
+    </nav>
+    <a class="cta-header" href="/app">📲 Ouvrir l'App</a>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <div class="hero-icon">$</div>
+    <h1>USCA Dollar X<br /><span>USCADX</span></h1>
+    <p class="tagline">Recevez de l'argent instantanément sur TRON · Visible dans Trust Wallet · Frais ultra-faibles</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#receive">📲 Recevoir USCADX</a>
+      <a class="btn-secondary" href="/app">Ouvrir l'App ↗</a>
+    </div>
+  </section>
+
+  <!-- ===== STATS BAR ===== -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-value">1T</div>
+      <div class="stat-label">Supply totale</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">6</div>
+      <div class="stat-label">Décimales</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">500M</div>
+      <div class="stat-label">Faucet gratuit</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">TRC-20</div>
+      <div class="stat-label">Standard</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value">&lt; 1¢</div>
+      <div class="stat-label">Frais / tx</div>
+    </div>
+  </div>
+
+  <!-- ===== HOW TO RECEIVE ===== -->
+  <section class="section" id="receive">
+    <h2 class="section-title">Comment <span>recevoir</span> USCADX ?</h2>
+    <p class="section-sub">Partagez votre adresse TRON — votre expéditeur n'a besoin que de ça.</p>
+
+    <!-- Contract info card -->
+    <div class="receive-card">
+      <div class="qr-block">
+        <div id="qr-contract"></div>
+        <div class="qr-label">Contrat USCADX</div>
+      </div>
+      <div class="receive-info">
+        <h3>Adresse du contrat USCADX</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+          Pour recevoir USCADX, communiquez simplement votre adresse de wallet TRON (commence par T).<br />
+          L'expéditeur doit avoir ce contrat dans son wallet.
+        </p>
+        <div class="addr-box" id="contract-addr-display">Non encore déployé — revenez plus tard</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="copy-btn" onclick="copyContractAddr()">📋 Copier le contrat</button>
+          <a id="tronscan-link" href="https://tronscan.org/#/token20" target="_blank"
+             style="display:inline-flex;align-items:center;gap:6px;background:rgba(39,117,202,0.12);border:1px solid var(--border);color:var(--blue);font-weight:600;font-size:13px;padding:10px 16px;border-radius:10px;text-decoration:none;">
+            🔍 TronScan ↗
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <div class="steps-grid" style="margin-top:36px;">
+      <div class="step-card">
+        <div class="step-card-num">1</div>
+        <h3>Copiez votre adresse TRON</h3>
+        <p>Ouvrez Trust Wallet ou TronLink et copiez votre adresse (commence par T).</p>
+      </div>
+      <div class="step-card">
+        <div class="step-card-num">2</div>
+        <h3>Partagez l'adresse</h3>
+        <p>Envoyez votre adresse à l'expéditeur — par message, QR code ou copier-coller.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-card-num">3</div>
+        <h3>Recevez instantanément</h3>
+        <p>L'expéditeur envoie les USCADX. Confirmé en 3 secondes sur TRON.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-card-num">4</div>
+        <h3>Ajoutez le token</h3>
+        <p>Ajoutez USCADX dans Trust Wallet via le bouton ci-dessous pour voir le solde.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== WALLETS ===== -->
+  <section class="section" id="wallets" style="background:rgba(39,117,202,0.03);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+    <h2 class="section-title">Compatible avec vos <span>wallets</span></h2>
+    <p class="section-sub">USCADX est un token TRC-20 standard — fonctionne sur tous les wallets TRON.</p>
+
+    <div class="wallet-cards">
+
+      <!-- Trust Wallet -->
+      <div class="wallet-card">
+        <div class="wallet-card-header">
+          <div class="wallet-card-icon" style="background:rgba(39,117,202,0.12);">🔵</div>
+          <div class="wallet-card-name">Trust Wallet</div>
+        </div>
+        <ul class="wallet-steps">
+          <li><span class="step-num">1</span> Ouvrez Trust Wallet → onglet "Tokens"</li>
+          <li><span class="step-num">2</span> Cliquez "+" ou "Ajouter un token"</li>
+          <li><span class="step-num">3</span> Réseau: TRON (TRC-20)</li>
+          <li><span class="step-num">4</span> Collez l'adresse du contrat USCADX</li>
+          <li><span class="step-num">5</span> Validez — le token apparaît dans votre liste</li>
+        </ul>
+        <a id="trust-deeplink" href="#" class="wallet-link" onclick="openTrustWallet(event)">🔵 Ajouter dans Trust Wallet</a>
+      </div>
+
+      <!-- TronLink -->
+      <div class="wallet-card">
+        <div class="wallet-card-header">
+          <div class="wallet-card-icon" style="background:rgba(239,0,39,0.12);">🔴</div>
+          <div class="wallet-card-name">TronLink</div>
+        </div>
+        <ul class="wallet-steps">
+          <li><span class="step-num">1</span> Ouvrez TronLink → onglet "Assets"</li>
+          <li><span class="step-num">2</span> Cliquez "Manage assets"</li>
+          <li><span class="step-num">3</span> Recherchez "USCADX" ou collez le contrat</li>
+          <li><span class="step-num">4</span> Activez le toggle pour l'afficher</li>
+        </ul>
+        <a href="https://www.tronlink.org/" target="_blank" class="wallet-link" style="background:linear-gradient(135deg,#ef0027,#b0001c);">🔴 Télécharger TronLink</a>
+      </div>
+
+      <!-- Exodus -->
+      <div class="wallet-card">
+        <div class="wallet-card-header">
+          <div class="wallet-card-icon" style="background:rgba(100,80,200,0.12);">💜</div>
+          <div class="wallet-card-name">Exodus</div>
+        </div>
+        <ul class="wallet-steps">
+          <li><span class="step-num">1</span> Ouvrez Exodus → Portfolio</li>
+          <li><span class="step-num">2</span> Menu → "Activer les tokens"</li>
+          <li><span class="step-num">3</span> Cherchez "USCADX" ou ajoutez par contrat</li>
+          <li><span class="step-num">4</span> Le token TRC-20 apparaît automatiquement</li>
+        </ul>
+        <a href="https://www.exodus.com/download" target="_blank" class="wallet-link" style="background:linear-gradient(135deg,#6450c8,#3d2fa8);">💜 Télécharger Exodus</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FAUCET ===== -->
+  <section class="section">
+    <div class="faucet-banner">
+      <h2>🚰 Faucet <span>Gratuit</span></h2>
+      <p>Réclamez 500 000 000 USCADX gratuits — une seule fois par adresse TRON. Parfait pour tester et commencer.</p>
+      <a class="btn-primary" href="/app" style="font-size:16px;padding:16px 40px;">
+        🚰 Réclamer 500M USCADX
+      </a>
+      <p style="margin-top:16px;font-size:13px;color:var(--muted);">Nécessite TronLink ou Trust Wallet connecté à l'app.</p>
+    </div>
+  </section>
+
+  <!-- ===== TOKENOMICS ===== -->
+  <section class="section" id="tokenomics">
+    <h2 class="section-title"><span>Tokenomics</span></h2>
+    <p class="section-sub">USCADX est conçu pour être simple, fluide et sans frais cachés.</p>
+    <div class="tokenomics-grid">
+      <div class="tk-card">
+        <div class="tk-card-label">Nom complet</div>
+        <div class="tk-card-value" style="font-size:16px;">USCA Dollar X</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-card-label">Symbole</div>
+        <div class="tk-card-value">USCADX</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-card-label">Blockchain</div>
+        <div class="tk-card-value" style="color:#ef0027;">TRON</div>
+        <div class="tk-card-sub">Mainnet TRC-20</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-card-label">Supply totale</div>
+        <div class="tk-card-value">1 000T</div>
+        <div class="tk-card-sub">1 000 000 000 000 USCADX</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-card-label">Décimales</div>
+        <div class="tk-card-value">6</div>
+        <div class="tk-card-sub">Comme USDT officiel</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-card-label">Faucet</div>
+        <div class="tk-card-value">500M</div>
+        <div class="tk-card-sub">Par adresse · 1 seule fois</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-card-label">Frais de tx</div>
+        <div class="tk-card-value">&lt; 1¢</div>
+        <div class="tk-card-sub">~1-5 TRX par envoi</div>
+      </div>
+      <div class="tk-card">
+        <div class="tk-card-label">Protection DEX</div>
+        <div class="tk-card-value" style="font-size:14px;">Activée</div>
+        <div class="tk-card-sub">SunSwap, SunCurve bloqués</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <p>USCA Dollar X (USCADX) · Token TRC-20 sur TRON Mainnet</p>
+    <p style="margin-top:8px;">
+      <a id="footer-tronscan" href="https://tronscan.org/#/token20" target="_blank">TronScan ↗</a> ·
+      <a href="/app">App</a> ·
+      <a href="/afrx">AfriChainX (AFRX)</a> ·
+      <a href="https://tronscan.org" target="_blank">Blockchain TRON</a>
+    </p>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script>
+    (function () {
+      var contractAddr = '';
+
+      // Try to get contract address from CONFIG
+      try {
+        contractAddr = CONFIG.NETWORKS.tron.tokens.uscadx.address || '';
+      } catch (e) {}
+
+      function setContractAddr(addr) {
+        contractAddr = addr;
+
+        var addrEl = document.getElementById('contract-addr-display');
+        if (addrEl) addrEl.textContent = addr || 'Non encore déployé — revenez plus tard';
+
+        var tronscanLink = document.getElementById('tronscan-link');
+        if (tronscanLink && addr) {
+          tronscanLink.href = 'https://tronscan.org/#/contract/' + addr;
+        }
+
+        var footerLink = document.getElementById('footer-tronscan');
+        if (footerLink && addr) {
+          footerLink.href = 'https://tronscan.org/#/contract/' + addr;
+        }
+
+        // Trust Wallet deeplink
+        var trustLink = document.getElementById('trust-deeplink');
+        if (trustLink && addr) {
+          trustLink.href = 'trust://add_asset?asset=trc20&address=' + encodeURIComponent(addr)
+            + '&name=USCA+Dollar+X&symbol=USCADX&decimals=6';
+        }
+
+        // QR code of contract address
+        if (addr) {
+          var qrDiv = document.getElementById('qr-contract');
+          if (qrDiv) {
+            qrDiv.innerHTML = '';
+            try {
+              new QRCode(qrDiv, { text: addr, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M });
+            } catch (e) {}
+          }
+        }
+      }
+
+      setContractAddr(contractAddr);
+
+      window.copyContractAddr = function () {
+        var addr = contractAddr;
+        if (!addr) { alert('Contrat non encore déployé.'); return; }
+        navigator.clipboard.writeText(addr).then(function () {
+          var btn = document.querySelector('.copy-btn');
+          if (btn) { btn.textContent = '✅ Copié !'; setTimeout(function () { btn.textContent = '📋 Copier le contrat'; }, 2000); }
+        }).catch(function () {
+          prompt('Copiez cette adresse :', addr);
+        });
+      };
+
+      window.openTrustWallet = function (e) {
+        if (!contractAddr) {
+          e.preventDefault();
+          alert('Contrat non encore déployé. Revenez plus tard.');
+          return;
+        }
+        // On mobile the trust:// deeplink opens the app; let it proceed
+      };
+    })();
+  </script>
+</body>
+</html>

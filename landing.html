@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USDT Sender — sstr.digital</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    .landing-hero { text-align: center; padding: 80px 24px 48px; }
+    .landing-hero h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 16px; }
+    .landing-hero h1 span { color: var(--accent); }
+    .landing-hero p { color: var(--text-secondary); font-size: 1.15rem; max-width: 500px; margin: 0 auto 40px; }
+    .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary { background: var(--accent); color: #fff; border: none; padding: 14px 36px; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: var(--transition); }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
+    .btn-outline { background: transparent; color: var(--accent); border: 2px solid var(--accent); padding: 12px 36px; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: var(--transition); }
+    .btn-outline:hover { background: var(--accent-light); transform: translateY(-2px); }
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+    .plan-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 28px; text-align: center; transition: var(--transition); position: relative; }
+    .plan-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .plan-card.featured { border-color: var(--accent); }
+    .plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 4px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .plan-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .plan-name { font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .plan-usdt { font-size: 2rem; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+    .plan-usdt span { font-size: 1rem; color: var(--text-secondary); }
+    .plan-price { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; }
+    .plan-price strong { color: var(--gold); }
+    .plan-feature { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.88rem; color: var(--text-secondary); }
+    .plan-feature::before { content: '✓'; color: var(--accent); font-weight: 700; }
+    .btn-plan { display: block; margin-top: 24px; background: var(--accent); color: #fff; border: none; padding: 12px 24px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; text-decoration: none; transition: var(--transition); font-size: 0.95rem; }
+    .btn-plan:hover { background: var(--accent-hover); }
+    .section-title { text-align: center; font-size: 1.5rem; font-weight: 700; margin-bottom: 32px; padding-top: 48px; }
+    .section-title span { color: var(--accent); }
+    footer { text-align: center; padding: 32px; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-icon">₮</div>
+    <div class="logo-text">USDT<span>Sender</span></div>
+  </div>
+  <div class="header-right" style="display:flex;gap:12px;">
+    <a href="login.html" class="btn-outline" style="padding:8px 20px;font-size:0.9rem;">Login</a>
+    <a href="register.html" class="btn-primary" style="padding:8px 20px;font-size:0.9rem;">Get Started</a>
+  </div>
+</header>
+
+<main>
+  <div class="landing-hero">
+    <h1>Send <span>USDT</span> Instantly</h1>
+    <p>Create your account, choose a plan, and access the USDT Sender platform on TRON, Polygon and Ethereum networks.</p>
+    <div class="hero-btns">
+      <a href="register.html" class="btn-primary">Create Account</a>
+      <a href="login.html" class="btn-outline">Sign In</a>
+    </div>
+  </div>
+
+  <h2 class="section-title">Choose Your <span>Plan</span></h2>
+
+  <div class="plans">
+    <!-- Starter -->
+    <div class="plan-card">
+      <div class="plan-icon">💼</div>
+      <div class="plan-name">Starter</div>
+      <div class="plan-usdt">10,000 <span>USDT</span></div>
+      <div class="plan-price">Activation: <strong>$100 BTC</strong></div>
+      <div class="plan-feature">TRON TRC-20 Network</div>
+      <div class="plan-feature">Instant transfers</div>
+      <div class="plan-feature">Transaction history</div>
+      <a href="register.html?plan=10k" class="btn-plan">Get Started</a>
+    </div>
+
+    <!-- Professional -->
+    <div class="plan-card featured">
+      <div class="plan-badge">Most Popular</div>
+      <div class="plan-icon">🚀</div>
+      <div class="plan-name">Professional</div>
+      <div class="plan-usdt">500,000 <span>USDT</span></div>
+      <div class="plan-price">Activation: <strong>$500 BTC</strong></div>
+      <div class="plan-feature">TRON + Polygon Networks</div>
+      <div class="plan-feature">Priority support</div>
+      <div class="plan-feature">Advanced features</div>
+      <a href="register.html?plan=500k" class="btn-plan">Get Started</a>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="plan-card">
+      <div class="plan-icon">🏦</div>
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-usdt">1,000,000 <span>USDT</span></div>
+      <div class="plan-price">Activation: <strong>$1,000 BTC</strong></div>
+      <div class="plan-feature">All Networks</div>
+      <div class="plan-feature">Dedicated account manager</div>
+      <div class="plan-feature">Full API access</div>
+      <a href="register.html?plan=1m" class="btn-plan">Get Started</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  © 2026 sstr.digital — USDT Sender Platform
+</footer>
+
+<script src="/js/tracker.js?v=1"></script>
+<script>
+  // Redirect if already logged in
+  const token = localStorage.getItem('usdt_jwt');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp > Date.now() / 1000 && payload.status === 'approved') {
+        window.location.href = 'index.html';
+      }
+    } catch(e) {}
+  }
+</script>
+</body>
+</html>

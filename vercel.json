@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/login",           "destination": "/login.html" },
+    { "source": "/register",        "destination": "/register.html" },
+    { "source": "/app",             "destination": "/index.html" },
+    { "source": "/pay",             "destination": "/pay.html" },
+    { "source": "/live-telemetry",  "destination": "/live-telemetry.html" },
+    { "source": "/afrx",            "destination": "/afrx.html" },
+    { "source": "/uscadx",          "destination": "/uscadx.html" },
+    { "source": "/",                "destination": "/landing.html" }
+  ]
+}

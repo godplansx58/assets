@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paiement USDT / USDC — USDT Sender</title>
+  <meta name="theme-color" content="#26a17b" id="meta-theme-color">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-card: #1a2235;
+      --bg-input: #0d1526;
+      --border: #2a3a55;
+      --accent: #26a17b;
+      --accent-hover: #2ebd8e;
+      --accent-light: rgba(38, 161, 123, 0.15);
+      --text-primary: #e8edf5;
+      --text-secondary: #8a9bb5;
+      --text-muted: #5a6a85;
+      --usdt-green: #26a17b;
+      --usdc-blue: #2775ca;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(38,161,123,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(52,152,219,0.05) 0%, transparent 50%);
+    }
+    .pay-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 28px;
+      max-width: 420px;
+      width: 100%;
+    }
+    .pay-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .pay-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+    .pay-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .pay-title span { color: var(--usdt-green); }
+    .pay-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .pay-address-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: 'Courier New', monospace;
+      word-break: break-all;
+      margin-bottom: 20px;
+    }
+    .form-group { margin-bottom: 20px; }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 12px 14px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .btn-pay {
+      width: 100%;
+      background: linear-gradient(135deg, var(--usdt-green), #1a8a65);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.25s;
+      margin-bottom: 20px;
+    }
+    .btn-pay:hover { opacity: 0.9; transform: translateY(-1px); }
+    .qr-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+    .qr-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    #pay-qr canvas, #pay-qr img {
+      border-radius: 8px;
+      border: 2px solid var(--border);
+    }
+    .pay-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .pay-footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="pay-card">
+    <div class="pay-header">
+      <img src="/usdt-logo.png" alt="USDT" class="pay-logo" />
+      <div class="pay-title">USDT<span>Sender</span></div>
+    </div>
+
+    <div class="pay-label">Destinataire</div>
+    <div class="pay-address-box" id="pay-to-address">—</div>
+
+    <div class="form-group">
+      <label class="form-label" for="pay-amount">Montant <span id="pay-token-label">USDT</span></label>
+      <input type="number" id="pay-amount" class="form-input" placeholder="0.00" min="0.000001" step="any" />
+    </div>
+
+    <button class="btn-pay" id="btn-pay-now">💳 Connecter wallet et payer</button>
+
+    <div class="qr-section">
+      <div class="qr-label">📷 Scanner pour payer</div>
+      <div id="pay-qr"></div>
+    </div>
+
+    <div class="pay-footer">
+      Propulsé par <a href="https://sstr.digital" target="_blank">sstr.digital</a>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var toAddr = params.get('to') || '';
+      var amount = params.get('amount') || '';
+      var token = (params.get('token') || 'usdt').toLowerCase();
+      var isUsdc = token === 'usdc';
+      var tokenSymbol = isUsdc ? 'USDC' : 'USDT';
+      var accentColor = isUsdc ? '#2775ca' : '#26a17b';
+
+      // Apply token-specific theme
+      document.documentElement.style.setProperty('--accent', accentColor);
+      document.documentElement.style.setProperty('--accent-hover', isUsdc ? '#3a8fd4' : '#2ebd8e');
+      document.documentElement.style.setProperty('--accent-light', isUsdc ? 'rgba(39,117,202,0.15)' : 'rgba(38,161,123,0.15)');
+      document.documentElement.style.setProperty('--usdt-green', accentColor);
+      var metaTheme = document.getElementById('meta-theme-color');
+      if (metaTheme) metaTheme.setAttribute('content', accentColor);
+      document.title = 'Paiement ' + tokenSymbol + ' — USDT Sender';
+
+      // Show token name in label
+      var tokenLabel = document.getElementById('pay-token-label');
+      if (tokenLabel) tokenLabel.textContent = tokenSymbol;
+
+      var toEl = document.getElementById('pay-to-address');
+      if (toEl) toEl.textContent = toAddr || 'Adresse non spécifiée';
+
+      var amountInput = document.getElementById('pay-amount');
+      if (amountInput && amount) amountInput.value = amount;
+
+      // Generate QR of the full payment URL (includes ?token= already in href)
+      var qrEl = document.getElementById('pay-qr');
+      if (qrEl && typeof QRCode !== 'undefined' && toAddr) {
+        new QRCode(qrEl, {
+          text: window.location.href,
+          width: 180,
+          height: 180,
+          colorDark: accentColor,
+          colorLight: '#1a2235'
+        });
+      }
+
+      // Pay button — redirect to app with all params including token
+      document.getElementById('btn-pay-now').addEventListener('click', function () {
+        var amt = document.getElementById('pay-amount').value;
+        var url = '/app?to=' + encodeURIComponent(toAddr)
+          + '&amount=' + encodeURIComponent(amt || '')
+          + '&token=' + encodeURIComponent(token);
+        window.location.href = url;
+      });
+    })();
+  </script>
+</body>
+</html>

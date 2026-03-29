@@ -1,0 +1,22 @@
+{
+  "name": "Tether USD",
+  "symbol": "USDT",
+  "decimals": 6,
+  "logo": "https://sstr.digital/usdt-logo.png",
+  "description": "USDT is a custom TRC-20 utility token on TRON Mainnet for wallet-to-wallet transfers inside the USDT Sender platform.",
+  "website": "https://sstr.digital",
+  "whitepaper": "https://sstr.digital",
+  "social": {
+    "twitter": "https://x.com",
+    "telegram": "https://t.me/sstrdigitalbot"
+  },
+  "price_ref": "Custom token. No official USD peg or market price feed.",
+  "contract": "TA61FU9u8hSqQiwKpR9hUy6opfvDKPHqdz",
+  "prices_realtime": {
+    "note": "Price display may remain 0 in wallets until external listing.",
+    "trx_price": "N/A",
+    "eth_price": "N/A",
+    "source": "N/A"
+  },
+  "tronscan_update_url": "https://tronscan.org/#/token20/TA61FU9u8hSqQiwKpR9hUy6opfvDKPHqdz"
+}

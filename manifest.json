@@ -1,0 +1,14 @@
+{
+  "name": "USDT Sender",
+  "short_name": "USDTSender",
+  "description": "Send & receive USDT on TRON and Ethereum networks",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#26a17b",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/usdt-logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/usdt-logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
