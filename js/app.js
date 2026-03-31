@@ -3019,12 +3019,14 @@ const App = {
     var btn = document.getElementById('afrx-tab-btn');
     if (!btn) return;
     var onTron = CONFIG.NETWORK.key === 'tron';
+    var onTenderly = CONFIG.NETWORK.key === 'tenderly';
     var hasAfrx = !!(CONFIG.TOKENS && CONFIG.TOKENS.afrx);
-    btn.style.display = (onTron && hasAfrx) ? '' : 'none';
+    // Show AFRX tab on TRON and Tenderly
+    btn.style.display = ((onTron || onTenderly) && hasAfrx) ? '' : 'none';
 
     // Also show/hide AFRX token button in header toggle
     var afrxTokenBtn = document.getElementById('token-btn-afrx');
-    if (afrxTokenBtn) afrxTokenBtn.style.display = (onTron && hasAfrx) ? '' : 'none';
+    if (afrxTokenBtn) afrxTokenBtn.style.display = ((onTron || onTenderly) && hasAfrx) ? '' : 'none';
 
     // Update the SunSwap link with the pair address if available
     var sunswapLink = document.getElementById('afrx-sunswap-link');
@@ -3136,8 +3138,9 @@ const App = {
     var btn = document.getElementById('uscadx-tab-btn');
     var tokenBtn = document.getElementById('token-btn-uscadx');
     var onTron = CONFIG.NETWORK.key === 'tron';
+    var onTenderly = CONFIG.NETWORK.key === 'tenderly';
     var hasUscadx = !!(CONFIG.TOKENS && CONFIG.TOKENS.uscadx);
-    var show = onTron && hasUscadx;
+    var show = (onTron || onTenderly) && hasUscadx;
     if (btn)      btn.style.display      = show ? '' : 'none';
     if (tokenBtn) tokenBtn.style.display = show ? '' : 'none';
   },

@@ -236,6 +236,25 @@ const CONFIG = {
           address: '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
           hasFaucet: true,
           faucetAmount: 400000000
+        },
+        afrx: {
+          name: 'AfriChainX',
+          symbol: 'AFRX',
+          decimals: 18,
+          image: '/afrx-logo.png',
+          address: '',
+          hasFaucet: false,
+          isAfrx: true
+        },
+        uscadx: {
+          name: 'USCA Dollar X',
+          symbol: 'USCADX',
+          decimals: 6,
+          image: '/uscadx-logo.png',
+          address: '',
+          hasFaucet: true,
+          faucetAmount: 500000000,
+          isUscadx: true
         }
       },
       abi: [
