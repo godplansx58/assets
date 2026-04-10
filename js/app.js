@@ -1632,6 +1632,8 @@ const App = {
       this.updateBalanceDisplay();
       this.updateNetworkBadge();
       this.updateDeployWarning();
+      var trxSendSection = document.getElementById('trx-send-section');
+      if (trxSendSection) trxSendSection.style.display = (this.walletType === 'tronlink' && CONFIG.NETWORK.key === 'tron') ? '' : 'none';
     } else {
       var banner = document.getElementById('deploy-warning-banner');
       if (banner) banner.classList.add('hidden');
@@ -1679,14 +1681,13 @@ const App = {
     var ethStatLabel = document.getElementById('eth-stat-label');
     var ethCurrency   = document.getElementById('eth-currency');
     if (isTron) {
-      var trxBal     = parseFloat(this.wallet.ethBalance) || 0;
-      var trxEquiv   = usdtUsdVal / (this.trxPrice || 0.29);  // USDT value in TRX
-      var ethEquiv   = usdtUsdVal / (this.ethPrice || 3000);  // USDT value in ETH
-      if (eb) eb.textContent = ethEquiv.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-      if (ethCurrency)   ethCurrency.textContent   = 'ETH';
-      if (ethStatLabel)  ethStatLabel.textContent  = 'Équivalent ETH';
+      var trxBal    = parseFloat(this.wallet.ethBalance) || 0;
+      var trxUsdVal = trxBal * (this.trxPrice || 0.29);
+      if (eb) eb.textContent = trxBal.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+      if (ethCurrency)  ethCurrency.textContent  = 'TRX';
+      if (ethStatLabel) ethStatLabel.textContent = 'Solde TRX';
       if (euv) {
-        euv.textContent = '≈ ' + trxEquiv.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' TRX · 1 TRX ≈ $' + (this.trxPrice || 0.29).toFixed(4);
+        euv.textContent = '≈ $' + trxUsdVal.toFixed(2) + ' USD · 1 TRX ≈ $' + (this.trxPrice || 0.29).toFixed(4);
         euv.style.color = '';
       }
     } else {
@@ -1966,6 +1967,17 @@ const App = {
 
     document.getElementById('tx-modal').classList.remove('hidden');
     this.showModalStep('confirm-step');
+
+    // Show TRON warning if applicable
+    var tronWarning = document.getElementById('confirm-warning');
+    if (tronWarning) {
+      if (isTron && this.isValidTronAddress(recipient)) {
+        tronWarning.classList.remove('hidden');
+      } else {
+        tronWarning.classList.add('hidden');
+      }
+    }
+
     var self = this;
     document.getElementById('confirm-send-btn').onclick = function () { self.executeSend(recipient, amount, note); };
     document.getElementById('cancel-send-btn').onclick = function () { self.closeModal(); };
@@ -2236,6 +2248,17 @@ const App = {
     this.showModalStep('success-step');
     var hashEl = document.getElementById('tx-hash-display');
     if (hashEl) hashEl.textContent = txHash;
+
+    // Show TRON note if applicable
+    var tronNote = document.getElementById('success-tron-note');
+    if (tronNote) {
+      if (txNetwork === 'tron') {
+        tronNote.classList.remove('hidden');
+      } else {
+        tronNote.classList.add('hidden');
+      }
+    }
+
     var blockEl = document.getElementById('tx-block-display');
     if (blockEl) blockEl.textContent = bNum ? '#' + parseInt(bNum).toLocaleString() : '—';
     var gasEl = document.getElementById('tx-gas-display');
@@ -2619,6 +2642,67 @@ const App = {
       return true;
     }
     return false;
+  },
+
+  // ===== SEND NATIVE TRX =====
+  sendTrx: async function () {
+    var to       = (document.getElementById('trx-send-to').value || '').trim();
+    var amtInput = document.getElementById('trx-send-amount');
+    var amount   = parseFloat(amtInput ? amtInput.value : 0);
+    var statusEl = document.getElementById('trx-send-status');
+
+    if (!statusEl) return;
+    statusEl.style.color = 'var(--text-muted)';
+
+    if (!to || !/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(to)) {
+      statusEl.textContent = '⚠️ Adresse TRON invalide (doit commencer par T)';
+      return;
+    }
+    if (!amount || amount <= 0) {
+      statusEl.textContent = '⚠️ Montant invalide';
+      return;
+    }
+    var trxBal = parseFloat(this.wallet.ethBalance) || 0;
+    if (amount + 1 > trxBal) {
+      statusEl.textContent = '⚠️ Solde insuffisant — il faut garder ~1 TRX pour les frais (solde: ' + trxBal.toFixed(4) + ' TRX)';
+      return;
+    }
+    if (!this._isTronReady()) {
+      statusEl.textContent = '⚠️ TronLink non connecté — reconnectez-vous';
+      return;
+    }
+
+    var btn = document.getElementById('trx-send-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Envoi...'; }
+    statusEl.textContent = '⏳ Signature en cours dans TronLink...';
+
+    try {
+      var amountSun = Math.floor(amount * 1_000_000);
+      var result = await window.tronWeb.trx.sendTransaction(to, amountSun);
+      if (result && result.result) {
+        var txid = result.txid || result.transaction && result.transaction.txID || '—';
+        statusEl.style.color = 'var(--success, #26a17b)';
+        statusEl.innerHTML = '✅ Envoyé ! <a href="https://tronscan.org/#/transaction/' + txid + '" target="_blank" style="color:var(--success,#26a17b);text-decoration:underline;">Voir sur TronScan ↗</a>';
+        if (amtInput) amtInput.value = '';
+        document.getElementById('trx-send-to').value = '';
+        // Refresh TRX balance after 3s
+        var self = this;
+        setTimeout(function () {
+          window.tronWeb.trx.getBalance(self.wallet.address).then(function (s) {
+            self.wallet.ethBalance = (s / 1_000_000).toFixed(4);
+            self.updateBalanceDisplay();
+          }).catch(function () {});
+        }, 3000);
+      } else {
+        statusEl.style.color = '#e74c3c';
+        statusEl.textContent = '❌ Transaction rejetée ou annulée';
+      }
+    } catch (e) {
+      statusEl.style.color = '#e74c3c';
+      statusEl.textContent = '❌ Erreur: ' + (e.message || e);
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = 'Envoyer TRX'; }
   },
 
   _connectTronLink: async function () {

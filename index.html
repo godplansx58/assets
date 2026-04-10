@@ -233,6 +233,22 @@
         </div>
       </div>
 
+      <!-- TRX Send Section (TronLink only) -->
+      <div id="trx-send-section" style="display:none; background:var(--bg-secondary); border-radius:var(--radius); padding:16px; margin-top:16px;">
+        <div style="font-size:13px; font-weight:700; margin-bottom:10px; color:#e84142;">📤 Envoyer TRX</div>
+        <div style="display:flex; gap:10px; flex-direction:column;">
+          <input id="trx-send-to" type="text" placeholder="Adresse TRON destinataire (T...)"
+            style="background:var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-size:13px; font-family:monospace;" />
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input id="trx-send-amount" type="number" min="0" step="any" placeholder="Montant TRX"
+              style="flex:1; background:var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-size:15px;" />
+            <button id="trx-send-btn" onclick="App.sendTrx()"
+              style="background:linear-gradient(135deg,#e84142,#b0001c); color:#fff; border:none; border-radius:var(--radius-sm); padding:10px 20px; font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;">Envoyer TRX</button>
+          </div>
+          <div id="trx-send-status" style="font-size:12px; color:var(--text-muted); min-height:18px;"></div>
+        </div>
+      </div>
+
       <!-- Deploy Warning Banner (inside wallet card) -->
       <div class="deploy-warning-banner hidden" id="deploy-warning-banner">
         <div class="deploy-warning-inner">
@@ -600,6 +616,9 @@
             <div class="confirm-row"><span class="confirm-row-label">Token</span><span class="confirm-row-value" id="confirm-token">USDT (TRC-20)</span></div>
             <div class="confirm-row"><span class="confirm-row-label">Frais de gaz</span><span class="confirm-row-value" id="confirm-gas">~0.0001 ETH</span></div>
           </div>
+          <div class="confirm-warning hidden" id="confirm-warning" style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin:12px 0;color:#92400e;font-size:13px;line-height:1.5;">
+            ⚠️ <strong>Attention TRON:</strong> Certaines wallets (ex: Exodus) n'affichent pas les TRC-20 tokens nativement. Vos USDT arriveront quand même! Vérifiez sur <a href="https://tronscan.org" target="_blank" style="color:#d97706;text-decoration:underline;">TronScan</a> après l'envoi.
+          </div>
           <div class="modal-actions">
             <button class="btn-cancel" id="cancel-send-btn">Annuler</button>
             <button class="btn-confirm" id="confirm-send-btn">✓ Confirmer & Envoyer</button>
@@ -630,6 +649,9 @@
             <div class="success-icon">✓</div>
             <div class="success-title">Transaction Confirmée!</div>
             <div class="success-subtitle" id="success-subtitle">Vos USDT ont été envoyés avec succès.</div>
+            <div class="success-note hidden" id="success-tron-note" style="background:#dbeafe;border:1px solid #0284c7;border-radius:8px;padding:12px;margin:12px 0;color:#0c4a6e;font-size:12px;line-height:1.5;">
+              💡 <strong>Info TRON:</strong> Si vous n'voyez pas les tokens dans votre wallet, c'est normal! Certaines wallets n'affichent pas les TRC-20. Les tokens sont bien arrivés sur la blockchain. Vérifiez sur <a href="https://tronscan.org" target="_blank" style="color:#0284c7;text-decoration:underline;">TronScan</a> en collant votre adresse.
+            </div>
             <div class="success-amount-display">
               <div class="s-amount" id="tx-amount-display">0 USDT</div>
               <div class="s-to">Envoyé à <span id="tx-to-display">—</span></div>
