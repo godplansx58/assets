@@ -1697,6 +1697,7 @@ const App = {
       if (ethStatLabel) ethStatLabel.textContent = 'Équivalent ETH';
       if (euv) { euv.textContent = '1 ETH ≈ $' + (this.ethPrice || 3000).toLocaleString('en-US') + ' USD'; euv.style.color = ''; }
     }
+    this._renderPortfolioCard();
   },
 
   // ===== TAB NAVIGATION =====
@@ -1727,7 +1728,7 @@ const App = {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
     // Update send balance hint
-    if (tab === 'send') this._updateSendBalanceHint();
+    if (tab === 'send') { this._updateSendBalanceHint(); this._loadQuickRecipients(); }
     // Load admin claims when tab is opened
     if (tab === 'admin-claims') this.loadClaimRequests();
     // Load AFRX balance when tab is opened
@@ -1741,6 +1742,118 @@ const App = {
     var bal = parseFloat(this.wallet.balance) || 0;
     var sym = CONFIG.TOKEN.symbol;
     hint.textContent = 'Solde disponible : ' + bal.toLocaleString('en-US', { maximumFractionDigits: 6 }) + ' ' + sym;
+  },
+
+  // ===== SMART FEATURES =====
+  _timeAgo: function (timestamp) {
+    if (!timestamp) return '';
+    var seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+    if (seconds < 60)    return 'à l\'instant';
+    if (seconds < 3600)  return 'il y a ' + Math.floor(seconds / 60) + 'min';
+    if (seconds < 86400) return 'il y a ' + Math.floor(seconds / 3600) + 'h';
+    return 'il y a ' + Math.floor(seconds / 86400) + 'j';
+  },
+
+  _renderPortfolioCard: function () {
+    var card = document.getElementById('portfolio-card');
+    if (!card || !this.wallet.connected) return;
+    var isTron      = CONFIG.NETWORK.key === 'tron';
+    var usdtBal    = parseFloat(this.wallet.balance) || 0;
+    var usdcBal    = parseFloat(this.wallet.usdcBalance) || 0;
+    var nativeBal  = parseFloat(this.wallet.ethBalance) || 0;
+    var nativePrice = isTron ? (this.trxPrice || 0.29) : (this.ethPrice || 3000);
+    var nativeSym  = isTron ? 'TRX' : 'ETH';
+    var nativeColor = isTron ? '#e84142' : '#627eea';
+    var usdtUsd    = usdtBal;
+    var usdcUsd    = usdcBal;
+    var nativeUsd  = nativeBal * nativePrice;
+    var totalUsd   = usdtUsd + usdcUsd + nativeUsd;
+    if (totalUsd < 0.001) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    var totalEl = document.getElementById('portfolio-total-usd');
+    if (totalEl) totalEl.textContent = '$' + totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var assets = [
+      { symbol: 'USDT', bal: usdtBal, usd: usdtUsd, color: '#26a17b' },
+      { symbol: 'USDC', bal: usdcBal, usd: usdcUsd, color: '#2775ca' },
+      { symbol: nativeSym, bal: nativeBal, usd: nativeUsd, color: nativeColor },
+    ].filter(function (a) { return a.bal > 0.0001; });
+    var barsEl = document.getElementById('portfolio-bars');
+    if (barsEl) {
+      barsEl.innerHTML = assets.map(function (a) {
+        var pct = totalUsd > 0 ? Math.min(100, a.usd / totalUsd * 100) : 0;
+        return [
+          '<div style="display:flex;align-items:center;gap:8px;">',
+            '<div style="width:52px;font-size:11px;font-weight:700;color:' + a.color + ';">' + a.symbol + '</div>',
+            '<div style="flex:1;background:var(--bg-primary);border-radius:4px;height:7px;overflow:hidden;">',
+              '<div style="background:' + a.color + ';width:' + pct.toFixed(1) + '%;height:100%;border-radius:4px;transition:width 0.6s ease;"></div>',
+            '</div>',
+            '<div style="width:90px;text-align:right;font-size:12px;color:var(--text-primary);font-weight:600;">' + a.bal.toLocaleString('en-US', { maximumFractionDigits: 4 }) + '</div>',
+            '<div style="width:52px;text-align:right;font-size:11px;color:var(--text-muted);">$' + a.usd.toFixed(2) + '</div>',
+          '</div>',
+        ].join('');
+      }).join('');
+    }
+    var txs = Simulator.getTransactionHistory();
+    var now = Date.now();
+    var weekMs = 7 * 24 * 60 * 60 * 1000;
+    var txsWeek = txs.filter(function (t) { return t.timestamp && (now - new Date(t.timestamp).getTime()) < weekMs && t.type === 'send'; });
+    var totalSentWeek = txsWeek.reduce(function (s, t) { return s + (parseFloat(t.amount) || 0); }, 0);
+    var statsEl = document.getElementById('portfolio-stats');
+    if (statsEl) {
+      statsEl.innerHTML = [
+        _stat('Total tx', txs.length, ''),
+        _stat('Envoyé 7j', totalSentWeek > 0 ? totalSentWeek.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—', ''),
+        _stat('Cette semaine', txsWeek.length + ' tx', ''),
+      ].join('');
+    }
+    function _stat(label, value, color) {
+      return [
+        '<div style="background:var(--bg-primary);border-radius:var(--radius-sm);padding:8px 12px;flex:1;min-width:80px;text-align:center;">',
+          '<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">' + label + '</div>',
+          '<div style="font-size:15px;font-weight:700;color:' + (color || 'var(--text-primary)') + ';">' + value + '</div>',
+        '</div>',
+      ].join('');
+    }
+  },
+
+  _loadQuickRecipients: function () {
+    var bar  = document.getElementById('quick-recipients-bar');
+    var list = document.getElementById('quick-recipients-list');
+    if (!bar || !list) return;
+    var txs  = Simulator.getTransactionHistory().filter(function (t) { return t.type === 'send' && t.to; });
+    var seen = {}, recent = [];
+    for (var i = 0; i < txs.length && recent.length < 3; i++) {
+      if (!seen[txs[i].to]) { seen[txs[i].to] = true; recent.push(txs[i]); }
+    }
+    if (!recent.length) { bar.style.display = 'none'; return; }
+    bar.style.display = '';
+    var contacts = {};
+    try { contacts = JSON.parse(localStorage.getItem('usdt_contacts') || '{}'); } catch (e) {}
+    var self = this;
+    list.innerHTML = recent.map(function (t) {
+      var addr  = t.to;
+      var short = addr.length > 12 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
+      var name  = contacts[addr] || short;
+      var amt   = parseFloat(t.amount) || 0;
+      var sym   = t.tokenSymbol || 'USDT';
+      return [
+        '<button type="button" onclick="App._fillRecipient(\'' + addr + '\')"',
+        ' style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);',
+        'padding:8px 12px;cursor:pointer;text-align:left;min-width:0;max-width:160px;">',
+          '<div style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + name + '</div>',
+          '<div style="font-size:11px;color:var(--text-muted);">' + amt.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ' + sym + '</div>',
+        '</button>',
+      ].join('');
+    }).join('');
+  },
+
+  _fillRecipient: function (address) {
+    var input = document.getElementById('recipient-input');
+    if (!input) return;
+    input.value = address;
+    input.dispatchEvent(new Event('input'));
+    this.showNotification('Adresse remplie', 'success');
+    input.focus();
   },
   pasteAddress: async function () {
     try {
@@ -1766,7 +1879,26 @@ const App = {
     document.getElementById('send-form') && document.getElementById('send-form').addEventListener('submit', function (e) { e.preventDefault(); self.initiateSend(); });
 
     document.getElementById('amount-input') && document.getElementById('amount-input').addEventListener('input', function (e) {
-      document.getElementById('amount-usd').textContent = '≈ ' + Simulator.formatUSD(parseFloat(e.target.value) || 0);
+      var amount = parseFloat(e.target.value) || 0;
+      document.getElementById('amount-usd').textContent = '≈ ' + Simulator.formatUSD(amount);
+      var bal    = parseFloat(self.wallet.balance) || 0;
+      var trxBal = parseFloat(self.wallet.ethBalance) || 0;
+      var hint   = document.getElementById('send-balance-hint');
+      if (!hint) return;
+      var warns = [];
+      if (amount > bal) {
+        warns.push('<span style="color:#e74c3c;">⚠️ Montant supérieur au solde (' + bal.toLocaleString('en-US', { maximumFractionDigits: 4 }) + ' ' + CONFIG.TOKEN.symbol + ')</span>');
+      } else if (bal > 0 && amount > bal * 0.8) {
+        warns.push('<span style="color:#f39c12;">💡 Tu envoies ' + Math.round(amount / bal * 100) + '% de ton solde</span>');
+      }
+      if (CONFIG.NETWORK.key === 'tron' && trxBal < 2) {
+        warns.push('<span style="color:#f39c12;">⛽ Solde TRX faible (' + trxBal + ' TRX) — frais à risque</span>');
+      }
+      if (warns.length) {
+        hint.innerHTML = warns.join('  ');
+      } else {
+        hint.textContent = 'Solde disponible : ' + bal.toLocaleString('en-US', { maximumFractionDigits: 6 }) + ' ' + CONFIG.TOKEN.symbol;
+      }
     });
 
     document.getElementById('max-btn') && document.getElementById('max-btn').addEventListener('click', function () {
@@ -1781,7 +1913,13 @@ const App = {
       var isTron = CONFIG.NETWORK.key === 'tron';
       var valid = isTron ? App.isValidTronAddress(addr) : Simulator.isValidAddress(addr);
       if (valid) {
-        ind.textContent = isTron ? '✓ Adresse TRON valide' : '✓ Adresse Ethereum valide';
+        var msg = isTron ? '✓ Adresse TRON valide' : '✓ Adresse Ethereum valide';
+        var history = Simulator.getTransactionHistory();
+        var lastTx = history.find(function (t) { return t.to === addr && t.type === 'send'; });
+        if (lastTx) {
+          msg += ' · Dernier envoi: ' + (parseFloat(lastTx.amount) || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' ' + (lastTx.tokenSymbol || 'USDT') + ' ' + App._timeAgo(lastTx.timestamp);
+        }
+        ind.textContent = msg;
         ind.className = 'address-indicator valid';
       } else {
         ind.textContent = '✗ Adresse invalide';

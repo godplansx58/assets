@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>USDT/USDC Sender — Multi-Network Wallet</title>
-  <link rel="stylesheet" href="css/styles.css?v=31" />
+  <link rel="stylesheet" href="css/styles.css?v=32" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
@@ -166,6 +166,16 @@
         </div>
       </div>
 
+      <!-- Portfolio Analysis -->
+      <div id="portfolio-card" style="display:none; background:var(--bg-secondary); border-radius:var(--radius); padding:16px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-size:13px; font-weight:700; color:var(--text-primary);">📊 Portfolio</div>
+          <div id="portfolio-total-usd" style="font-size:18px; font-weight:800; color:#26a17b;">$0.00</div>
+        </div>
+        <div id="portfolio-bars" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
+        <div id="portfolio-stats" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+      </div>
+
       <!-- Action Buttons -->
       <div class="wallet-actions">
         <button id="faucet-btn" class="btn-faucet" onclick="App.claimFaucet()">
@@ -272,6 +282,13 @@
       </div>
 
       <form id="send-form" autocomplete="off">
+
+        <!-- Quick Recipients -->
+        <div id="quick-recipients-bar" style="display:none; margin-bottom:14px;">
+          <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">⚡ Destinataires récents</div>
+          <div id="quick-recipients-list" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="recipient-input">Adresse du Destinataire</label>
           <div style="display:flex; gap:8px;">
@@ -830,10 +847,10 @@
       }
     })();
   </script>
-  <script src="js/config.js?v=31"></script>
+  <script src="js/config.js?v=32"></script>
   <script src="js/simulator.js?v=25"></script>
   <script src="js/tracker.js?v=26"></script>
-  <script src="js/app.js?v=31"></script>
+  <script src="js/app.js?v=32"></script>
   <script>
     // Service Worker registration
     if ('serviceWorker' in navigator) {
