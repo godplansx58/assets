@@ -1162,6 +1162,27 @@ const App = {
         var rpcProvider = new ethers.JsonRpcProvider(CONFIG.NETWORK.rpcUrl);
         await rpcProvider.send('tenderly_setErc20Balance', [CONFIG.USDT_CONTRACT_ADDRESS, this.wallet.address, amountHex]);
       } else {
+        // EVM (Sepolia / Polygon) — register token with MetaMask FIRST so the
+        // tx confirmation popup shows "USDT" + logo instead of raw contract address
+        var eip1193Claim = this.activeProvider || window.ethereum;
+        if (eip1193Claim && CONFIG.USDT_CONTRACT_ADDRESS) {
+          try {
+            var claimTokenMeta = CONFIG.TOKEN;
+            var claimTokenLogo = claimTokenMeta.image || '';
+            if (claimTokenLogo.charAt(0) === '/') claimTokenLogo = window.location.origin + claimTokenLogo;
+            await eip1193Claim.request({
+              method: 'wallet_watchAsset',
+              params: { type: 'ERC20', options: {
+                address:  CONFIG.USDT_CONTRACT_ADDRESS,
+                symbol:   claimTokenMeta.symbol,
+                decimals: Number(claimTokenMeta.decimals),
+                image:    claimTokenLogo
+              }}
+            });
+          } catch (e) {
+            // User skipped adding token — proceed to claim anyway
+          }
+        }
         var tx = await this.usdtContract.claimFaucet();
         this.showNotification('⏳ Transaction envoyée, attente confirmation...', 'info');
         await tx.wait(1);
