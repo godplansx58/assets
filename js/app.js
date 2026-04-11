@@ -1683,11 +1683,12 @@ const App = {
     if (isTron) {
       var trxBal    = parseFloat(this.wallet.ethBalance) || 0;
       var trxUsdVal = trxBal * (this.trxPrice || 0.29);
+      var trxEthEquiv = trxUsdVal / (this.ethPrice || 3000);
       if (eb) eb.textContent = trxBal.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
       if (ethCurrency)  ethCurrency.textContent  = 'TRX';
       if (ethStatLabel) ethStatLabel.textContent = 'Solde TRX';
       if (euv) {
-        euv.textContent = '≈ $' + trxUsdVal.toFixed(2) + ' USD · 1 TRX ≈ $' + (this.trxPrice || 0.29).toFixed(4);
+        euv.textContent = '≈ $' + trxUsdVal.toFixed(2) + ' USD · ≈ ' + trxEthEquiv.toLocaleString('fr-FR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) + ' ETH';
         euv.style.color = '';
       }
     } else {
