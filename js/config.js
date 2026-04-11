@@ -89,7 +89,7 @@ const CONFIG = {
           name: 'Tether USD',
           symbol: 'USDT',
           decimals: 6,
-          image: '/usdt-logo.png',
+          image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png',
           address: 'TL5cRxJYNRPwFfJ1PymGTCx2LBFw3xiEJM',
           hasFaucet: true
         },
@@ -97,7 +97,7 @@ const CONFIG = {
           name: 'USD Coin',
           symbol: 'USDC',
           decimals: 6,
-          image: '/usdc-logo.svg',
+          image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
           address: '',  // Deploy: node deploy-usdc-tron.js → paste address here
           hasFaucet: true,
           faucetAmount: 400000000
@@ -106,7 +106,7 @@ const CONFIG = {
           name: 'AfriChainX',
           symbol: 'AFRX',
           decimals: 18,
-          image: '/afrx-logo.png',
+          image: 'https://sstr.digital/afrx-logo.png',
           address: '',  // Deploy: node deploy-afrx.js → paste address here
           hasFaucet: false,
           isAfrx: true,
@@ -117,7 +117,7 @@ const CONFIG = {
           name: 'USCA Dollar X',
           symbol: 'USCADX',
           decimals: 6,
-          image: '/uscadx-logo.png',
+          image: 'https://sstr.digital/uscadx-logo.png',
           address: '',  // Deploy: node deploy-uscadx.js → paste address here
           hasFaucet: true,
           faucetAmount: 500000000,
@@ -174,7 +174,7 @@ const CONFIG = {
           name: 'Tether USD',
           symbol: 'USDT',
           decimals: 6,
-          image: '/usdt-logo.png',
+          image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png',
           address: '',
           hasFaucet: true
         },
@@ -182,7 +182,7 @@ const CONFIG = {
           name: 'USD Coin',
           symbol: 'USDC',
           decimals: 6,
-          image: '/usdc-logo.svg',
+          image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
           address: '',  // Deploy: node deploy-usdc-polygon.js → paste address here
           hasFaucet: true,
           faucetAmount: 400000000
@@ -224,7 +224,7 @@ const CONFIG = {
           name: 'Tether USD',
           symbol: 'USDT',
           decimals: 6,
-          image: '/usdt-logo.png',
+          image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png',
           address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
           hasFaucet: true
         },
@@ -232,7 +232,7 @@ const CONFIG = {
           name: 'USD Coin',
           symbol: 'USDC',
           decimals: 6,
-          image: '/usdc-logo.svg',
+          image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
           address: '0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
           hasFaucet: true,
           faucetAmount: 400000000
@@ -241,7 +241,7 @@ const CONFIG = {
           name: 'AfriChainX',
           symbol: 'AFRX',
           decimals: 18,
-          image: '/afrx-logo.png',
+          image: 'https://sstr.digital/afrx-logo.png',
           address: '',
           hasFaucet: false,
           isAfrx: true
@@ -250,7 +250,7 @@ const CONFIG = {
           name: 'USCA Dollar X',
           symbol: 'USCADX',
           decimals: 6,
-          image: '/uscadx-logo.png',
+          image: 'https://sstr.digital/uscadx-logo.png',
           address: '',
           hasFaucet: true,
           faucetAmount: 500000000,
@@ -293,7 +293,7 @@ const CONFIG = {
           name: 'Tether USD',
           symbol: 'USDT',
           decimals: 6,
-          image: '/usdt-logo.png',
+          image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png',
           address: '0x4674DC31EEF6CB9F4B2aD8a120d2055f65bb2fDA',
           hasFaucet: true
         },
@@ -301,7 +301,7 @@ const CONFIG = {
           name: 'USD Coin',
           symbol: 'USDC',
           decimals: 6,
-          image: '/usdc-logo.svg',
+          image: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
           address: '',  // Deploy: node deploy-usdc.js → paste address here
           hasFaucet: true,
           faucetAmount: 400000000
