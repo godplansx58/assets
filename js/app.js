@@ -1724,6 +1724,25 @@ const App = {
       }
     }
 
+    // ── TRX balance card (for TRON network) ────────────────────────────────
+    var trxStat = document.getElementById('trx-stat');
+    if (trxStat) {
+      if (isTron) {
+        trxStat.style.display = '';
+        var trxBal = parseFloat(this.wallet.ethBalance) || 0;
+        var trxUsdVal = trxBal * (this.trxPrice || 0.29);
+        var trxEthEquiv = trxUsdVal / (this.ethPrice || 3000);
+        var trxBalance = document.getElementById('trx-balance');
+        var trxValue = document.getElementById('trx-value');
+        if (trxBalance) trxBalance.textContent = trxBal.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+        if (trxValue) {
+          trxValue.textContent = '≈ $' + trxUsdVal.toFixed(2) + ' USD · ≈ ' + trxEthEquiv.toLocaleString('fr-FR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) + ' ETH';
+        }
+      } else {
+        trxStat.style.display = 'none';
+      }
+    }
+
     // ── Gas token (TRX or ETH) ────────────────────────────────────────────
     var eb         = document.getElementById('eth-balance');
     var currencies = document.querySelectorAll('.wallet-stat-value .currency');
@@ -1732,23 +1751,15 @@ const App = {
 
     var ethStatLabel = document.getElementById('eth-stat-label');
     var ethCurrency   = document.getElementById('eth-currency');
-    if (isTron) {
-      var trxBal    = parseFloat(this.wallet.ethBalance) || 0;
-      var trxUsdVal = trxBal * (this.trxPrice || 0.29);
-      var trxEthEquiv = trxUsdVal / (this.ethPrice || 3000);
-      if (eb) eb.textContent = trxBal.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-      if (ethCurrency)  ethCurrency.textContent  = 'TRX';
-      if (ethStatLabel) ethStatLabel.textContent = 'Solde TRX';
-      if (euv) {
-        euv.textContent = '≈ $' + trxUsdVal.toFixed(2) + ' USD · ≈ ' + trxEthEquiv.toLocaleString('fr-FR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) + ' ETH';
-        euv.style.color = '';
-      }
-    } else {
-      var ethEquiv = usdtUsdVal / (this.ethPrice || 3000);
-      if (eb) eb.textContent = ethEquiv.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-      if (ethCurrency)  ethCurrency.textContent  = 'ETH';
-      if (ethStatLabel) ethStatLabel.textContent = 'Équivalent ETH';
-      if (euv) { euv.textContent = '1 ETH ≈ $' + (this.ethPrice || 3000).toLocaleString('en-US') + ' USD'; euv.style.color = ''; }
+
+    // Équivalent ETH toujours basé sur USDT disponible
+    var ethEquiv = usdtUsdVal / (this.ethPrice || 3000);
+    if (eb) eb.textContent = ethEquiv.toLocaleString('fr-FR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    if (ethCurrency)  ethCurrency.textContent  = 'ETH';
+    if (ethStatLabel) ethStatLabel.textContent = 'Équivalent ETH (USDT)';
+    if (euv) {
+      euv.textContent = '$' + usdtUsdVal.toFixed(2) + ' USD ≈ ' + ethEquiv.toLocaleString('fr-FR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }) + ' ETH';
+      euv.style.color = '';
     }
     this._renderPortfolioCard();
   },
