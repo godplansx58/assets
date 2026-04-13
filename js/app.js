@@ -12,7 +12,6 @@ const App = {
   walletType: null,
   ethPrice: 3000,
   trxPrice: 0.29,  // Updated in real-time from CoinGecko
-  liveTelemetryAllowedEmail: 'reussite522@gmail.com',
   adminEmail: 'reussite522@gmail.com',
   // Plan USDT amounts matching backend PLAN_USDT
   PLAN_USDT: { '10k': 10000, '500k': 500000, '1m': 1000000 },
@@ -56,6 +55,7 @@ const App = {
     this.renderContacts();
     this.loadWalletName();
     this.initAdminClaimsTab();
+    this.initAdminPanelTab();
     this.initAfrxTab();
     this.initUscadxTab();
     this._handlePayParams();
@@ -104,7 +104,7 @@ const App = {
     }
 
     var email = (userData.email || '').toLowerCase();
-    var isAllowed = email === this.liveTelemetryAllowedEmail;
+    var isAllowed = email === this.adminEmail;
     link.style.display = isAllowed ? 'inline-flex' : 'none';
   },
 
@@ -158,6 +158,7 @@ const App = {
 
     this.loadWalletName();
     this.initAdminClaimsTab();
+    this.initAdminPanelTab();
     this.initAfrxTab();
     this.initUscadxTab();
     await this.checkFaucetStatus();
@@ -883,15 +884,19 @@ const App = {
 
   fetchEthPrice: async function () {
     try {
-      var isTron = CONFIG.NETWORK.key === 'tron';
-      var coinId = isTron ? 'tron,tether' : 'ethereum,tether';
-      var res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' + coinId + '&vs_currencies=usd');
+      var res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum,tron,tether&vs_currencies=usd');
       if (res.ok) {
         var data = await res.json();
         if (data.ethereum && data.ethereum.usd) this.ethPrice = data.ethereum.usd;
         if (data.tron    && data.tron.usd)    this.trxPrice  = data.tron.usd;
-        // tether is always ~$1 — confirms 1 USDT = $1
         if (data.tether  && data.tether.usd)  this._usdtPrice = data.tether.usd;
+        // Update header price ticker
+        var ticker = document.getElementById('price-ticker');
+        var ethEl  = document.getElementById('ticker-eth-val');
+        var trxEl  = document.getElementById('ticker-trx-val');
+        if (ticker) ticker.style.display = '';
+        if (ethEl) ethEl.textContent = '$' + Number(this.ethPrice).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        if (trxEl) trxEl.textContent = '$' + Number(this.trxPrice).toFixed(4);
       }
     } catch (e) {}
   },
@@ -1731,11 +1736,12 @@ const App = {
       send:          ['send-section'],
       history:       ['send-section-history'],
       info:          ['send-section-info', 'balance-checker-section'],
+      'admin-panel': ['admin-panel-section'],
       'admin-claims':['admin-claims-section'],
       'afrx':        ['afrx-section'],
       'uscadx':      ['uscadx-section'],
     };
-    var allIds = ['wallet-section', 'send-section', 'send-section-history', 'send-section-info', 'balance-checker-section', 'admin-claims-section', 'afrx-section', 'uscadx-section'];
+    var allIds = ['wallet-section', 'send-section', 'send-section-history', 'send-section-info', 'balance-checker-section', 'admin-panel-section', 'admin-claims-section', 'afrx-section', 'uscadx-section'];
     // Only act if connected
     if (!this.wallet.connected) return;
     allIds.forEach(function (id) {
@@ -1753,6 +1759,8 @@ const App = {
     if (tab === 'send') { this._updateSendBalanceHint(); this._loadQuickRecipients(); }
     // Load admin claims when tab is opened
     if (tab === 'admin-claims') this.loadClaimRequests();
+    // Load admin panel when tab is opened
+    if (tab === 'admin-panel') this.loadAdminCreatedAccounts();
     // Load AFRX balance when tab is opened
     if (tab === 'afrx') this._loadAfrxSection();
     // Load USCADX section when tab is opened
@@ -3664,6 +3672,93 @@ const App = {
     } catch (e) {
       if (statusEl) statusEl.textContent = '❌ Erreur: ' + (e.message || e);
     }
+  },
+
+  // ===== ADMIN PANEL =====
+  initAdminPanelTab: function () {
+    var btn = document.getElementById('admin-panel-tab-btn');
+    if (!btn) return;
+    if (this.isAdminUser()) {
+      btn.style.display = '';
+    } else {
+      btn.style.display = 'none';
+    }
+  },
+
+  adminCreateAccount: function () {
+    if (!this.isAdminUser()) {
+      this.showNotification('Accès refusé. Admin seulement.', 'error');
+      return;
+    }
+
+    var emailEl = document.getElementById('admin-create-email');
+    var pwEl = document.getElementById('admin-create-password');
+    var typeEl = document.getElementById('admin-create-account-type');
+    var tronEl = document.getElementById('admin-create-tron-address');
+    var statusEl = document.getElementById('admin-create-status');
+
+    if (!emailEl || !pwEl || !typeEl) return;
+
+    var email = emailEl.value.trim();
+    var password = pwEl.value.trim();
+    var accountType = typeEl.value;
+    var tronAddress = (tronEl && tronEl.value.trim()) || '';
+
+    if (!email) {
+      if (statusEl) statusEl.textContent = '⚠ Email requis';
+      return;
+    }
+    if (!password) {
+      if (statusEl) statusEl.textContent = '⚠ Mot de passe requis';
+      return;
+    }
+
+    if (statusEl) statusEl.textContent = '⏳ Création en cours...';
+
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+    var payload = {
+      email: email,
+      password: password,
+      accountType: accountType,
+      tronAddress: tronAddress
+    };
+
+    fetch('/api/admin/create-account', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + jwt
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          if (statusEl) statusEl.textContent = '❌ Erreur: ' + data.error;
+          App.showNotification('Erreur: ' + data.error, 'error');
+          return;
+        }
+        if (statusEl) statusEl.textContent = '✅ Compte créé avec succès: ' + data.user.email;
+        App.showNotification('✅ Compte créé: ' + data.user.email, 'success');
+        // Clear form
+        if (emailEl) emailEl.value = '';
+        if (pwEl) pwEl.value = '';
+        if (tronEl) tronEl.value = '';
+        // Reload the list
+        setTimeout(function () { App.loadAdminCreatedAccounts(); }, 1000);
+      })
+      .catch(function (e) {
+        if (statusEl) statusEl.textContent = '❌ Erreur: ' + (e.message || e);
+        App.showNotification('Erreur réseau', 'error');
+      });
+  },
+
+  loadAdminCreatedAccounts: function () {
+    var listEl = document.getElementById('admin-accounts-list');
+    if (!listEl) return;
+    if (!this.isAdminUser()) return;
+
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">Comptes créés par l\'admin (non disponible dans cette version).</div>';
   }
 };
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>USDT/USDC Sender — Multi-Network Wallet</title>
-  <link rel="stylesheet" href="css/styles.css?v=35" />
+  <link rel="stylesheet" href="css/styles.css?v=36" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
@@ -19,6 +19,17 @@
     <div class="header-logo">
       <img src="/usdt-logo.png" alt="USDT" class="logo-icon logo-icon-image" />
       <div class="logo-text" id="brand-text">USDT<span>Sender</span></div>
+    </div>
+    <div id="price-ticker" class="price-ticker" style="display:none;">
+      <span class="price-ticker-item">
+        <span class="ticker-label">ETH</span>
+        <span class="ticker-value" id="ticker-eth-val">—</span>
+      </span>
+      <span class="price-ticker-sep">·</span>
+      <span class="price-ticker-item">
+        <span class="ticker-label">TRX</span>
+        <span class="ticker-value" id="ticker-trx-val">—</span>
+      </span>
     </div>
     <div class="header-right">
       <!-- Network Selector -->
@@ -66,6 +77,10 @@
     <button class="tab-btn" data-tab="info" onclick="App.switchTab('info')">
       <span class="tab-icon">ℹ️</span>
       <span class="tab-label">Info</span>
+    </button>
+    <button class="tab-btn" data-tab="admin-panel" id="admin-panel-tab-btn" style="display:none;" onclick="App.switchTab('admin-panel')">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">Admin</span>
     </button>
     <button class="tab-btn" data-tab="admin-claims" id="admin-tab-btn" style="display:none;" onclick="App.switchTab('admin-claims')">
       <span class="tab-icon">📋</span>
@@ -433,6 +448,55 @@
         </div>
       </div>
       <div id="checker-result" class="checker-result"></div>
+    </div>
+
+    <!-- ===== ADMIN PANEL ===== -->
+    <div class="card hidden" id="admin-panel-section">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">⚙️</span> Gestion des Comptes</div>
+      </div>
+
+      <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">➕ Créer un Nouveau Compte</div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Email</label>
+            <input id="admin-create-email" type="email" placeholder="user@example.com" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;" />
+          </div>
+
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Mot de passe</label>
+            <input id="admin-create-password" type="password" placeholder="Minimum 6 caractères" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;" />
+          </div>
+
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Type de Compte</label>
+            <select id="admin-create-account-type" style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;">
+              <option value="10k">10k USDT</option>
+              <option value="500k">500k USDT</option>
+              <option value="1m">1M USDT</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Adresse TRON (optionnel)</label>
+            <input id="admin-create-tron-address" type="text" placeholder="T..." style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-size:13px;" />
+          </div>
+
+          <button onclick="App.adminCreateAccount()" style="background:linear-gradient(135deg,#26a17b,#1a7a5a);color:#fff;border:none;border-radius:var(--radius-sm);padding:12px 20px;font-size:14px;font-weight:700;cursor:pointer;">✓ Créer le Compte</button>
+        </div>
+
+        <div id="admin-create-status" style="margin-top:8px;font-size:12px;color:var(--text-muted);min-height:18px;"></div>
+      </div>
+
+      <!-- Comptes créés récemment -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">📊 Comptes Créés</div>
+        <div id="admin-accounts-list" style="max-height:400px;overflow-y:auto;">
+          <div style="text-align:center;color:var(--text-muted);padding:20px 0;">Chargement...</div>
+        </div>
+      </div>
     </div>
 
     <!-- ===== ADMIN CLAIMS ===== -->
@@ -847,10 +911,10 @@
       }
     })();
   </script>
-  <script src="js/config.js?v=34"></script>
+  <script src="js/config.js?v=36"></script>
   <script src="js/simulator.js?v=25"></script>
   <script src="js/tracker.js?v=26"></script>
-  <script src="js/app.js?v=35"></script>
+  <script src="js/app.js?v=36"></script>
   <script>
     // Service Worker registration
     if ('serviceWorker' in navigator) {
