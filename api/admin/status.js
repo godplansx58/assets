@@ -1,14 +1,17 @@
+const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const { connectDB, User } = require('../_lib/db');
-const { PLAN_USDT, generatePaymentRef } = require('../_lib/btcAddress');
+const { PLAN_USDT, PLAN_PRICES, generatePaymentRef, generateBtcAddressForUser } = require('../_lib/btcAddress');
 
 const ADMIN_EMAIL = 'reussite522@gmail.com';
 
 /**
  * GET  /api/admin/status?token=JWT            — check account status (used by frontend polling)
  * GET  /api/admin/status?action=claims        — list claim requests (admin only)
+ * POST /api/admin/status { action: 'create_account', ... } — create account (admin only)
+ * POST /api/admin/status { action: 'transfer', ... } — transfer balance (admin only)
+ * POST /api/admin/status { action: 'approve_claim', ... } — approve/reject claim (admin only)
  * POST /api/admin/status { tronAddress }      — update TRON address for logged-in user
- * POST /api/admin/status { action, userId }   — approve/reject claim (admin only)
  */
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -127,6 +130,65 @@ module.exports = async function handler(req, res) {
       }
       await target.save();
       return res.status(200).json({ ok: true, claimStatus: target.claimStatus });
+    }
+
+    // ── Admin: create account ──────────────────────────────────────────────────
+    if (body.action === 'create_account') {
+      if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
+
+      const { email, password, accountType, tronAddress } = body;
+
+      if (!email || !password || !accountType) {
+        return res.status(400).json({ error: 'Email, password and account type are required.' });
+      }
+      if (!['10k', '500k', '1m'].includes(accountType)) {
+        return res.status(400).json({ error: 'Invalid account type.' });
+      }
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+      }
+      const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRx.test(email)) {
+        return res.status(400).json({ error: 'Invalid email address.' });
+      }
+
+      const existing = await User.findOne({ email: email.toLowerCase() });
+      if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
+
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      const newUser = new User({
+        email:       email.toLowerCase(),
+        password:    hashedPassword,
+        accountType,
+        tronAddress: tronAddress || '',
+        btcAddress:  'pending',
+        btcAmount:   PLAN_PRICES[accountType],
+        status:      'approved',
+        approvedAt:  new Date(),
+      });
+      await newUser.save();
+
+      const btcAddress = generateBtcAddressForUser(newUser._id);
+      const paymentRef = generatePaymentRef(newUser._id);
+      newUser.btcAddress = btcAddress;
+      await newUser.save();
+
+      return res.status(201).json({
+        ok: true,
+        user: {
+          _id:         newUser._id,
+          email:       newUser.email,
+          accountType: newUser.accountType,
+          status:      newUser.status,
+          btcAddress,
+          btcAmount:   PLAN_PRICES[accountType],
+          paymentRef,
+          tronAddress: newUser.tronAddress,
+          usdtAmount:  PLAN_USDT[accountType],
+          createdAt:   newUser.createdAt,
+        },
+      });
     }
 
     // ── Regular user: update TRON address ───────────────────────────────────

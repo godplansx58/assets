@@ -3717,13 +3717,14 @@ const App = {
 
     var jwt = localStorage.getItem('usdt_jwt') || '';
     var payload = {
+      action: 'create_account',
       email: email,
       password: password,
       accountType: accountType,
       tronAddress: tronAddress
     };
 
-    fetch('/api/admin/create-account', {
+    fetch('/api/admin/status', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
