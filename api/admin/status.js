@@ -9,6 +9,7 @@ const ADMIN_EMAIL = 'reussite522@gmail.com';
 /**
  * GET  /api/admin/status?token=JWT            — check account status (used by frontend polling)
  * GET  /api/admin/status?action=claims        — list claim requests (admin only)
+ * GET  /api/admin/status?action=accounts      — list all accounts with balances (admin only)
  * POST /api/admin/status { action: 'create_account', ... } — create account (admin only)
  * POST /api/admin/status { action: 'transfer', ... } — transfer balance (admin only)
  * POST /api/admin/status { action: 'approve_claim', ... } — approve/reject claim (admin only)
@@ -57,6 +58,29 @@ module.exports = async function handler(req, res) {
       };
     });
     return res.status(200).json({ claims: result });
+  }
+
+  // ── Admin: GET all active accounts with balances ────────────────────────────
+  if (req.method === 'GET' && req.query.action === 'accounts') {
+    if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
+    const accounts = await User.find(
+      { status: 'approved' },
+      'email firstName lastName accountType usdtBalance tronAddress status createdAt'
+    ).sort({ createdAt: -1 }).lean();
+    const result = accounts.map(function (u) {
+      return {
+        _id:         u._id,
+        email:       u.email,
+        firstName:   u.firstName || '',
+        lastName:    u.lastName  || '',
+        accountType: u.accountType,
+        usdtBalance: u.usdtBalance || 0,
+        tronAddress: u.tronAddress || '—',
+        status:      u.status,
+        createdAt:   u.createdAt,
+      };
+    });
+    return res.status(200).json({ accounts: result });
   }
 
   if (req.method === 'GET') {

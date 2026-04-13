@@ -3759,7 +3759,66 @@ const App = {
     if (!listEl) return;
     if (!this.isAdminUser()) return;
 
-    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">Comptes créés par l\'admin (non disponible dans cette version).</div>';
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">Chargement...</div>';
+
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+    fetch('/api/admin/status?action=accounts', {
+      headers: { 'Authorization': 'Bearer ' + jwt }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        App._renderAdminAccounts(data.accounts || []);
+      })
+      .catch(function (e) {
+        listEl.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:20px 0;">Erreur de chargement.</div>';
+      });
+  },
+
+  _renderAdminAccounts: function (accounts) {
+    var listEl = document.getElementById('admin-accounts-list');
+    if (!listEl) return;
+
+    if (!accounts.length) {
+      listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">Aucun compte actif.</div>';
+      return;
+    }
+
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<tr style="background:var(--bg-primary);border-bottom:1px solid var(--border);">';
+    html += '<th style="padding:8px;text-align:left;color:var(--text-muted);">Email</th>';
+    html += '<th style="padding:8px;text-align:left;color:var(--text-muted);">Nom</th>';
+    html += '<th style="padding:8px;text-align:center;color:var(--text-muted);">Type</th>';
+    html += '<th style="padding:8px;text-align:right;color:var(--text-muted);">Solde USDT</th>';
+    html += '<th style="padding:8px;text-align:left;color:var(--text-muted);">Adresse TRON</th>';
+    html += '</tr>';
+
+    accounts.forEach(function (acc) {
+      var name = (acc.firstName || '') + ' ' + (acc.lastName || '');
+      name = name.trim() || '—';
+      var balance = parseFloat(acc.usdtBalance || 0).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      var trxAddr = acc.tronAddress;
+      if (trxAddr && trxAddr.length > 20) {
+        trxAddr = trxAddr.substring(0, 10) + '...' + trxAddr.substring(trxAddr.length - 6);
+      }
+
+      html += '<tr style="border-bottom:1px solid var(--border);background:var(--bg-secondary);">';
+      html += '<td style="padding:8px;"><span style="color:#26a17b;font-weight:600;">' + acc.email + '</span></td>';
+      html += '<td style="padding:8px;">' + name + '</td>';
+      html += '<td style="padding:8px;text-align:center;"><span style="background:rgba(38,161,123,0.2);color:#26a17b;padding:2px 6px;border-radius:4px;font-weight:600;">' + acc.accountType + '</span></td>';
+      html += '<td style="padding:8px;text-align:right;color:#26a17b;font-weight:700;">' + balance + '</td>';
+      html += '<td style="padding:8px;font-family:monospace;font-size:11px;color:var(--text-muted);">' + trxAddr + '</td>';
+      html += '</tr>';
+    });
+
+    html += '</table>';
+    listEl.innerHTML = html;
+  },
+
+  loadAdminAccounts: function () {
+    this.loadAdminCreatedAccounts();
   }
 };
 
