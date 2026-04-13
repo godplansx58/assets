@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const TronWeb = require('tronweb');
+const { TronWeb } = require('tronweb');
 
 // Master BTC address for receiving payments
 const MASTER_BTC_ADDRESS = 'bc1qgenfze5dv789afpy8x3grnpatnh7afg2twqftt';
@@ -42,54 +42,36 @@ function generatePaymentRef(userId) {
  * Returns: { success: boolean, address: string, error?: string }
  */
 async function generateTronAddress() {
-  const maxRetries = 3;
-  let lastError = null;
+  try {
+    console.log(`[TRON] Generating address...`);
+    const { TronWeb } = require('tronweb');
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`[TRON] Attempt ${attempt}/${maxRetries}: Creating account...`);
-      const tronWeb = new TronWeb({
-        fullHost: 'https://api.trongrid.io'
-      });
-      const account = tronWeb.createAccount();
-      console.log(`[TRON] Created:`, {
-        hasAddress: !!account?.address,
-        hasBase58: !!account?.address?.base58,
-        hasHex: !!account?.address?.hex,
-        address: account?.address
-      });
+    // Generate random private key (hex format without 0x prefix)
+    const privateKey = crypto.randomBytes(32).toString('hex');
+    console.log(`[TRON] Generated private key`);
 
-      if (account?.address?.base58) {
-        console.log(`[TRON] ✓ Generated: ${account.address.base58}`);
-        return { success: true, address: account.address.base58 };
-      }
+    // Create TronWeb and get address from private key
+    const tronWeb = new TronWeb({
+      fullHost: 'https://api.trongrid.io',
+      privateKey: privateKey
+    });
 
-      if (account?.address?.hex) {
-        try {
-          const base58 = tronWeb.address.fromHex(account.address.hex);
-          console.log(`[TRON] ✓ Generated (from hex): ${base58}`);
-          return { success: true, address: base58 };
-        } catch (hexErr) {
-          console.error(`[TRON] HEX conversion failed:`, hexErr.message);
-        }
-      }
+    const address = tronWeb.address.fromPrivateKey(privateKey);
+    console.log(`[TRON] ✓ Generated address: ${address}`);
 
-      throw new Error(`Invalid account: ${JSON.stringify(account)}`);
-    } catch (e) {
-      lastError = e;
-      console.error(`[TRON] Attempt ${attempt} failed:`, e.message);
-      if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 500));
-      }
+    if (address && address.startsWith('T')) {
+      return { success: true, address };
     }
-  }
 
-  console.error(`[TRON] All attempts failed. Last error:`, lastError?.message);
-  return {
-    success: false,
-    address: '',
-    error: `Failed to generate TRON address: ${lastError?.message || 'Unknown error'}`
-  };
+    throw new Error(`Invalid TRON address: ${address}`);
+  } catch (e) {
+    console.error(`[TRON] Generation failed:`, e.message);
+    return {
+      success: false,
+      address: '',
+      error: `Failed to generate TRON address: ${e.message}`
+    };
+  }
 }
 
 module.exports = {
