@@ -3684,6 +3684,8 @@ const App = {
     if (!btn) return;
     if (this.isAdminUser()) {
       btn.style.display = '';
+      // Load accounts list when admin panel is available
+      this.loadAdminCreatedAccounts();
     } else {
       btn.style.display = 'none';
     }
