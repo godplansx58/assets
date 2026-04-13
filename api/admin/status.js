@@ -328,7 +328,37 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // ── Regular user: update TRON address ───────────────────────────────────
+    // ── Admin: Clear TRON addresses created today ──────────────────────────────
+    if (body.action === 'clear_tron_addresses') {
+      if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
+
+      // Find all users created today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const usersCreatedToday = await User.find({
+        createdAt: { $gte: today, $lt: tomorrow },
+        tronAddress: { $ne: '', $exists: true }
+      });
+
+      console.log(`[CLEAR] Found ${usersCreatedToday.length} wallets created today`);
+
+      let cleared = 0;
+      for (const u of usersCreatedToday) {
+        u.tronAddress = '';
+        await u.save();
+        cleared++;
+        console.log(`[CLEAR] Cleared TRON address for ${u.email}`);
+      }
+
+      return res.status(200).json({
+        success: true,
+        cleared: cleared,
+        message: `Cleared ${cleared} TRON addresses created today`
+      });
+    }
     const { tronAddress } = body;
     if (!tronAddress || !tronAddress.startsWith('T')) {
       return res.status(400).json({ error: 'Invalid TRON address.' });
