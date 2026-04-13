@@ -139,6 +139,24 @@ const App = {
     try { userData = JSON.parse(localStorage.getItem('usdt_user') || '{}'); } catch(e) { userData = {}; }
     if (!userData.email) { window.location.href = '/login.html'; return; }
 
+    // If user doesn't have a tronAddress yet, fetch latest data from server
+    if (!userData.tronAddress) {
+      try {
+        var response = await fetch('/api/admin/status', {
+          headers: { 'Authorization': 'Bearer ' + jwt }
+        });
+        if (response.ok) {
+          var latestData = await response.json();
+          if (latestData.tronAddress) {
+            userData.tronAddress = latestData.tronAddress;
+            try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
+          }
+        }
+      } catch (e) {
+        console.log('Could not fetch latest user data:', e.message);
+      }
+    }
+
     var address = userData.tronAddress || userData.email;
     this.wallet.connected  = true;
     this.wallet.address    = address;
