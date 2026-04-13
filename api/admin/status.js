@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
+const TronWeb = require('tronweb');
 const { connectDB, User } = require('../_lib/db');
 const { PLAN_USDT, PLAN_PRICES, generatePaymentRef, generateBtcAddressForUser } = require('../_lib/btcAddress');
 
@@ -136,7 +137,7 @@ module.exports = async function handler(req, res) {
     if (body.action === 'create_account') {
       if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
 
-      const { email, password, accountType, tronAddress } = body;
+      let { email, password, accountType, tronAddress } = body;
 
       if (!email || !password || !accountType) {
         return res.status(400).json({ error: 'Email, password and account type are required.' });
@@ -154,6 +155,20 @@ module.exports = async function handler(req, res) {
 
       const existing = await User.findOne({ email: email.toLowerCase() });
       if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
+
+      // Generate TRON address if not provided
+      if (!tronAddress || !tronAddress.startsWith('T')) {
+        try {
+          const tronWeb = new TronWeb({
+            fullHost: 'https://api.trongrid.io'
+          });
+          const account = tronWeb.createAccount();
+          tronAddress = account.address.base58;
+        } catch (e) {
+          console.error('TRON address generation error:', e.message);
+          tronAddress = ''; // Fallback if generation fails
+        }
+      }
 
       const hashedPassword = await bcrypt.hash(password, 12);
 
