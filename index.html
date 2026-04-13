@@ -492,6 +492,14 @@
         <div id="admin-create-status" style="margin-top:8px;font-size:12px;color:var(--text-muted);min-height:18px;"></div>
       </div>
 
+      <!-- Migration TRON Addresses -->
+      <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;">🔄 Migration - Générer TRON Addresses</div>
+        <p style="font-size:11px;color:var(--text-muted);margin:0 0 12px 0;">Générer automatiquement des adresses TRON pour tous les clients qui n'en ont pas.</p>
+        <button onclick="App.migrateTronAddresses()" style="background:linear-gradient(135deg,#3498db,#2980b9);color:#fff;border:none;border-radius:var(--radius-sm);padding:12px 20px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">🔄 Lancer la Migration</button>
+        <div id="admin-migration-status" style="margin-top:8px;font-size:12px;color:var(--text-muted);min-height:18px;"></div>
+      </div>
+
       <!-- Comptes créés récemment -->
       <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">

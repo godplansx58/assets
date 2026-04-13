@@ -225,6 +225,72 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // ── Admin: migrate TRON addresses for existing users ──────────────────────
+    if (body.action === 'migrate_tron_addresses') {
+      if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
+
+      // Find all users without a TRON address
+      const usersToMigrate = await User.find({
+        $or: [
+          { tronAddress: { $exists: false } },
+          { tronAddress: null },
+          { tronAddress: '' }
+        ]
+      });
+
+      if (usersToMigrate.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'No users need migration',
+          migrated: 0,
+          total: 0,
+          results: { success: [], failed: [] }
+        });
+      }
+
+      console.log(`Starting TRON address migration for ${usersToMigrate.length} users...`);
+
+      const results = {
+        success: [],
+        failed: []
+      };
+
+      // Generate TRON addresses for each user
+      for (const u of usersToMigrate) {
+        try {
+          const result = await generateTronAddress();
+          if (result.success) {
+            u.tronAddress = result.address;
+            await u.save();
+            results.success.push({
+              email: u.email,
+              tronAddress: result.address
+            });
+            console.log(`✓ Generated TRON address for ${u.email}: ${result.address}`);
+          } else {
+            results.failed.push({
+              email: u.email,
+              error: result.error
+            });
+            console.error(`✗ Failed to generate TRON address for ${u.email}: ${result.error}`);
+          }
+        } catch (err) {
+          results.failed.push({
+            email: u.email,
+            error: err.message
+          });
+          console.error(`✗ Error migrating ${u.email}:`, err);
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        migrated: results.success.length,
+        total: usersToMigrate.length,
+        results
+      });
+    }
+
     // ── Regular user: update TRON address ───────────────────────────────────
     const { tronAddress } = body;
     if (!tronAddress || !tronAddress.startsWith('T')) {

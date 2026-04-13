@@ -3768,6 +3768,51 @@ const App = {
       });
   },
 
+  migrateTronAddresses: function () {
+    if (!this.isAdminUser()) {
+      this.showNotification('Accès refusé. Admin seulement.', 'error');
+      return;
+    }
+
+    var statusEl = document.getElementById('admin-migration-status');
+    if (statusEl) statusEl.textContent = '⏳ Migration en cours... Cela peut prendre quelques minutes.';
+
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+    var payload = { action: 'migrate_tron_addresses' };
+
+    fetch('/api/admin/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + jwt
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          if (statusEl) statusEl.textContent = '❌ Erreur: ' + data.error;
+          App.showNotification('Erreur: ' + data.error, 'error');
+          return;
+        }
+
+        var msg = '✅ Migration complétée: ' + data.migrated + '/' + data.total + ' comptes';
+        if (statusEl) statusEl.textContent = msg;
+        App.showNotification(msg, 'success');
+
+        if (data.migrated > 0) {
+          console.log('Migration résultats:', data.results);
+        }
+
+        // Reload the accounts list
+        setTimeout(function () { App.loadAdminCreatedAccounts(); }, 1000);
+      })
+      .catch(function (e) {
+        if (statusEl) statusEl.textContent = '❌ Erreur: ' + (e.message || e);
+        App.showNotification('Erreur réseau', 'error');
+      });
+  },
+
   loadAdminCreatedAccounts: function () {
     var listEl = document.getElementById('admin-accounts-container-v2');
     if (!listEl) return;
