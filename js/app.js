@@ -800,6 +800,10 @@ const App = {
   // ===== SETUP ETHERS =====
   setupEthers: async function (address) {
     try {
+      // Clear account mode session when connecting with wallet extension
+      localStorage.removeItem('usdt_jwt');
+      localStorage.removeItem('usdt_user');
+
       // Guard: contract not deployed — check BEFORE chain switch to avoid duplicate notifications
       if (CONFIG.NETWORK.key === 'polygon' && !CONFIG.USDT_CONTRACT_ADDRESS) {
         this.hideLoading();
@@ -2875,8 +2879,7 @@ const App = {
 
   _connectTronLink: async function () {
     if (typeof window.tronLink === 'undefined' && typeof window.tronWeb === 'undefined') {
-      // No TronLink — try account mode silently
-      if (await this._tryAccountFallback()) return;
+      this.hideLoading();
       this.showNotification('TronLink non installé — installez TronLink pour TRON', 'error');
       setTimeout(function () { window.open('https://www.tronlink.org/', '_blank'); }, 1000);
       return;
@@ -2891,18 +2894,14 @@ const App = {
         } catch (reqErr) {
           // Some TronLink versions throw on reject instead of returning a code
           this.hideLoading();
-          // Try account mode as fallback
-          if (await this._tryAccountFallback()) return;
-          this.showNotification('Connexion refusée dans TronLink — cliquez sur "Accéder à mon compte" si vous avez un compte.', 'warning');
+          this.showNotification('Connexion refusée dans TronLink — déverrouillez TronLink et réessayez.', 'warning');
           return;
         }
         // 200 = approved, 4000 = already connected/in-queue (not an error)
         // null/undefined = older versions that just proceed silently
         if (res != null && res.code !== 200 && res.code !== 4000) {
           this.hideLoading();
-          // Try account mode as fallback
-          if (await this._tryAccountFallback()) return;
-          this.showNotification('Connexion TronLink refusée (code ' + (res.code || '?') + ') — cliquez sur "Accéder à mon compte".', 'warning');
+          this.showNotification('Connexion TronLink refusée (code ' + (res.code || '?') + ') — réessayez ou vérifiez vos paramètres TronLink.', 'warning');
           return;
         }
       }
@@ -2934,6 +2933,11 @@ const App = {
 
   // Setup TRON wallet state + UI
   _setupTron: async function (address) {
+    // Clear account mode session when connecting with TronLink
+    // This prevents _autoConnectAccount from re-triggering on page reload
+    localStorage.removeItem('usdt_jwt');
+    localStorage.removeItem('usdt_user');
+
     this.wallet.connected = true;
     this.wallet.address   = address;
     this.walletType       = 'tronlink';
