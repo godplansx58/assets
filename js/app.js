@@ -149,11 +149,32 @@ const App = {
           var latestData = await response.json();
           if (latestData.tronAddress) {
             userData.tronAddress = latestData.tronAddress;
+          }
+          // Also update the USDT balance in case of transfers
+          if (latestData.usdtAmount !== undefined) {
+            userData.usdtBalance = latestData.usdtAmount;
+          }
+          try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
+        }
+      } catch (e) {
+        console.log('Could not fetch latest user data:', e.message);
+      }
+    } else {
+      // Even if user has tronAddress, sync balance from server (in case of transfers)
+      try {
+        var response = await fetch('/api/admin/status', {
+          headers: { 'Authorization': 'Bearer ' + jwt }
+        });
+        if (response.ok) {
+          var serverData = await response.json();
+          if (serverData.usdtAmount !== undefined && serverData.usdtAmount !== userData.usdtBalance) {
+            console.log('Balance updated from server:', userData.usdtBalance, '→', serverData.usdtAmount);
+            userData.usdtBalance = serverData.usdtAmount;
             try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
           }
         }
       } catch (e) {
-        console.log('Could not fetch latest user data:', e.message);
+        console.log('Could not sync balance:', e.message);
       }
     }
 
