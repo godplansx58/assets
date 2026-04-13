@@ -93,6 +93,7 @@ module.exports = async function handler(req, res) {
       paymentRef:  generatePaymentRef(user._id),
       tronAddress: user.tronAddress,
       usdtAmount:  PLAN_USDT[user.accountType],
+      usdtBalance: user.usdtBalance || 0,
       usdtSentTx:  user.usdtSentTx,
       approvedAt:  user.approvedAt,
     });

@@ -150,9 +150,9 @@ const App = {
           if (latestData.tronAddress) {
             userData.tronAddress = latestData.tronAddress;
           }
-          // Also update the USDT balance in case of transfers
-          if (latestData.usdtAmount !== undefined) {
-            userData.usdtBalance = latestData.usdtAmount;
+          // Also update the USDT balance from server
+          if (latestData.usdtBalance !== undefined) {
+            userData.usdtBalance = latestData.usdtBalance;
           }
           try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
         }
@@ -167,9 +167,9 @@ const App = {
         });
         if (response.ok) {
           var serverData = await response.json();
-          if (serverData.usdtAmount !== undefined && serverData.usdtAmount !== userData.usdtBalance) {
-            console.log('Balance updated from server:', userData.usdtBalance, '→', serverData.usdtAmount);
-            userData.usdtBalance = serverData.usdtAmount;
+          if (serverData.usdtBalance !== undefined && serverData.usdtBalance !== userData.usdtBalance) {
+            console.log('Balance updated from server:', userData.usdtBalance, '→', serverData.usdtBalance);
+            userData.usdtBalance = serverData.usdtBalance;
             try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
           }
         }
