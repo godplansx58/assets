@@ -3769,7 +3769,7 @@ const App = {
   },
 
   loadAdminCreatedAccounts: function () {
-    var listEl = document.getElementById('admin-accounts-list');
+    var listEl = document.getElementById('admin-accounts-container-v2');
     if (!listEl) return;
 
     console.log('📊 isAdminUser():', this.isAdminUser());
@@ -3806,7 +3806,7 @@ const App = {
   },
 
   _renderAdminAccounts: function (accounts) {
-    var listEl = document.getElementById('admin-accounts-list');
+    var listEl = document.getElementById('admin-accounts-container-v2');
     if (!listEl) return;
 
     if (!accounts.length) {
