@@ -161,6 +161,10 @@ const App = {
     this.initAdminPanelTab();
     this.initAfrxTab();
     this.initUscadxTab();
+    // Load admin accounts immediately if admin user
+    if (this.isAdminUser()) {
+      this.loadAdminCreatedAccounts();
+    }
     await this.checkFaucetStatus();
     this.loadTransactionHistory();
   },
