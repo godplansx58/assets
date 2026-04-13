@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const TronWeb = require('tronweb');
 
 // Master BTC address for receiving payments
 const MASTER_BTC_ADDRESS = 'bc1qgenfze5dv789afpy8x3grnpatnh7afg2twqftt';
@@ -36,9 +37,45 @@ function generatePaymentRef(userId) {
   return hash.slice(0, 12).toUpperCase();
 }
 
+/**
+ * Generate a TRON address with retry logic
+ * Returns: { success: boolean, address: string, error?: string }
+ */
+async function generateTronAddress() {
+  const maxRetries = 3;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const tronWeb = new TronWeb({
+        fullHost: 'https://api.trongrid.io'
+      });
+      const account = tronWeb.createAccount();
+      if (account && account.address && account.address.base58) {
+        return { success: true, address: account.address.base58 };
+      }
+      throw new Error('Invalid account object from TronWeb');
+    } catch (e) {
+      lastError = e;
+      console.error(`TRON address generation attempt ${attempt}/${maxRetries} failed:`, e.message);
+      if (attempt < maxRetries) {
+        // Wait 500ms before retry
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+  }
+
+  return {
+    success: false,
+    address: '',
+    error: `Failed to generate TRON address after ${maxRetries} attempts: ${lastError ? lastError.message : 'Unknown error'}`
+  };
+}
+
 module.exports = {
   generateBtcAddressForUser,
   generatePaymentRef,
+  generateTronAddress,
   PLAN_PRICES,
   PLAN_USDT,
   MASTER_BTC_ADDRESS,

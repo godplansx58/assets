@@ -1,8 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
-const TronWeb = require('tronweb');
 const { connectDB, User } = require('../_lib/db');
-const { PLAN_USDT, PLAN_PRICES, generatePaymentRef, generateBtcAddressForUser } = require('../_lib/btcAddress');
+const { PLAN_USDT, PLAN_PRICES, generatePaymentRef, generateBtcAddressForUser, generateTronAddress } = require('../_lib/btcAddress');
 
 const ADMIN_EMAIL = 'reussite522@gmail.com';
 
@@ -182,16 +181,12 @@ module.exports = async function handler(req, res) {
 
       // Generate TRON address if not provided
       if (!tronAddress || !tronAddress.startsWith('T')) {
-        try {
-          const tronWeb = new TronWeb({
-            fullHost: 'https://api.trongrid.io'
-          });
-          const account = tronWeb.createAccount();
-          tronAddress = account.address.base58;
-        } catch (e) {
-          console.error('TRON address generation error:', e.message);
-          tronAddress = ''; // Fallback if generation fails
+        const tronResult = await generateTronAddress();
+        if (!tronResult.success) {
+          console.error('Failed to generate TRON address:', tronResult.error);
+          return res.status(500).json({ error: 'Failed to generate TRON address: ' + tronResult.error });
         }
+        tronAddress = tronResult.address;
       }
 
       const hashedPassword = await bcrypt.hash(password, 12);
@@ -200,7 +195,7 @@ module.exports = async function handler(req, res) {
         email:       email.toLowerCase(),
         password:    hashedPassword,
         accountType,
-        tronAddress: tronAddress || '',
+        tronAddress: tronAddress,
         btcAddress:  'pending',
         btcAmount:   PLAN_PRICES[accountType],
         status:      'approved',

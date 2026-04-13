@@ -3743,8 +3743,12 @@ const App = {
           App.showNotification('Erreur: ' + data.error, 'error');
           return;
         }
-        if (statusEl) statusEl.textContent = '✅ Compte créé avec succès: ' + data.user.email;
-        App.showNotification('✅ Compte créé: ' + data.user.email, 'success');
+        var statusMsg = '✅ Compte créé: ' + data.user.email;
+        if (data.user.tronAddress) {
+          statusMsg += ' → TRON: ' + data.user.tronAddress.substring(0, 10) + '...';
+        }
+        if (statusEl) statusEl.textContent = statusMsg;
+        App.showNotification('✅ Compte créé avec adresse TRON générée', 'success');
         // Clear form
         if (emailEl) emailEl.value = '';
         if (pwEl) pwEl.value = '';
