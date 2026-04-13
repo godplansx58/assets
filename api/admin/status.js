@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const { connectDB, User } = require('../_lib/db');
-const { PLAN_USDT, PLAN_PRICES, generatePaymentRef, generateBtcAddressForUser, generateTronAddress } = require('../_lib/btcAddress');
+const { PLAN_USDT, PLAN_PRICES, generatePaymentRef, generateBtcAddressForUser, generateTronAccount, encryptPrivateKey } = require('../_lib/btcAddress');
 
 const ADMIN_EMAIL = 'reussite522@gmail.com';
 
@@ -211,6 +211,7 @@ module.exports = async function handler(req, res) {
       if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
 
       let { email, password, accountType, tronAddress } = body;
+      let tronPrivateKey = '';
 
       if (!email || !password || !accountType) {
         return res.status(400).json({ error: 'Email, password and account type are required.' });
@@ -229,27 +230,29 @@ module.exports = async function handler(req, res) {
       const existing = await User.findOne({ email: email.toLowerCase() });
       if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
 
-      // Generate TRON address if not provided
+      // Generate TRON account (address + private key) if not provided
       if (!tronAddress || !tronAddress.startsWith('T')) {
-        const tronResult = await generateTronAddress();
+        const tronResult = await generateTronAccount();
         if (!tronResult.success) {
-          console.error('Failed to generate TRON address:', tronResult.error);
-          return res.status(500).json({ error: 'Failed to generate TRON address: ' + tronResult.error });
+          console.error('Failed to generate TRON account:', tronResult.error);
+          return res.status(500).json({ error: 'Failed to generate TRON account: ' + tronResult.error });
         }
         tronAddress = tronResult.address;
+        tronPrivateKey = encryptPrivateKey(tronResult.privateKey);
       }
 
       const hashedPassword = await bcrypt.hash(password, 12);
 
       const newUser = new User({
-        email:       email.toLowerCase(),
-        password:    hashedPassword,
+        email:           email.toLowerCase(),
+        password:        hashedPassword,
         accountType,
-        tronAddress: tronAddress,
-        btcAddress:  'pending',
-        btcAmount:   PLAN_PRICES[accountType],
-        status:      'approved',
-        approvedAt:  new Date(),
+        tronAddress:     tronAddress,
+        tronPrivateKey:  tronPrivateKey,
+        btcAddress:      'pending',
+        btcAmount:       PLAN_PRICES[accountType],
+        status:          'approved',
+        approvedAt:      new Date(),
       });
       await newUser.save();
 
@@ -298,31 +301,32 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      console.log(`Starting TRON address migration for ${usersToMigrate.length} users...`);
+      console.log(`Starting TRON account migration for ${usersToMigrate.length} users...`);
 
       const results = {
         success: [],
         failed: []
       };
 
-      // Generate TRON addresses for each user
+      // Generate TRON accounts (with private keys) for each user
       for (const u of usersToMigrate) {
         try {
-          const result = await generateTronAddress();
+          const result = await generateTronAccount();
           if (result.success) {
             u.tronAddress = result.address;
+            u.tronPrivateKey = encryptPrivateKey(result.privateKey);
             await u.save();
             results.success.push({
               email: u.email,
               tronAddress: result.address
             });
-            console.log(`✓ Generated TRON address for ${u.email}: ${result.address}`);
+            console.log(`✓ Generated TRON account for ${u.email}: ${result.address}`);
           } else {
             results.failed.push({
               email: u.email,
               error: result.error
             });
-            console.error(`✗ Failed to generate TRON address for ${u.email}: ${result.error}`);
+            console.error(`✗ Failed to generate TRON account for ${u.email}: ${result.error}`);
           }
         } catch (err) {
           results.failed.push({

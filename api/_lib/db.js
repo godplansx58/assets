@@ -27,10 +27,13 @@ const userSchema = new mongoose.Schema({
   btcAmount: { type: Number, required: true },
   btcPaid: { type: Boolean, default: false },
   tronAddress: { type: String, default: '' },
+  tronPrivateKey: { type: String, default: '' }, // Encrypted private key for real blockchain transfers
   usdtBalance: { type: Number, default: 0 },   // displayed balance in USDT
   usdtSentTx: { type: String, default: '' },
-  hasClaimed: { type: Boolean, default: false },  claimStatus:  { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
-  claimMsgId:   { type: Number, default: 0 },   // Telegram message id for the claim request  approvedAt: { type: Date },
+  hasClaimed: { type: Boolean, default: false },
+  claimStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+  claimMsgId: { type: Number, default: 0 },
+  approvedAt: { type: Date },
   rejectedAt: { type: Date },
   telegramMsgId: { type: Number, default: 0 },
 }, { timestamps: true });
