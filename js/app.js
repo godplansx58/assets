@@ -3769,18 +3769,30 @@ const App = {
     if (!listEl) return;
     if (!this.isAdminUser()) return;
 
-    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">Chargement...</div>';
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">⏳ Chargement des comptes...</div>';
 
     var jwt = localStorage.getItem('usdt_jwt') || '';
+    console.log('📊 Loading admin accounts with JWT:', jwt ? '✓ Present' : '✗ Missing');
+
     fetch('/api/admin/status?action=accounts', {
       headers: { 'Authorization': 'Bearer ' + jwt }
     })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        console.log('📊 API Response:', r.status, r.statusText);
+        return r.json();
+      })
       .then(function (data) {
+        console.log('📊 Accounts data:', data);
+        if (data.error) {
+          console.error('📊 API Error:', data.error);
+          listEl.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:20px 0;">❌ Erreur: ' + data.error + '</div>';
+          return;
+        }
         App._renderAdminAccounts(data.accounts || []);
       })
       .catch(function (e) {
-        listEl.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:20px 0;">Erreur de chargement.</div>';
+        console.error('📊 Network error:', e);
+        listEl.innerHTML = '<div style="text-align:center;color:#e74c3c;padding:20px 0;">❌ Erreur réseau: ' + e.message + '</div>';
       });
   },
 
