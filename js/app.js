@@ -3767,7 +3767,12 @@ const App = {
   loadAdminCreatedAccounts: function () {
     var listEl = document.getElementById('admin-accounts-list');
     if (!listEl) return;
-    if (!this.isAdminUser()) return;
+
+    console.log('📊 isAdminUser():', this.isAdminUser());
+    if (!this.isAdminUser()) {
+      console.log('📊 Not admin user, skipping load');
+      return;
+    }
 
     listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">⏳ Chargement des comptes...</div>';
 
