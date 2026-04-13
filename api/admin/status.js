@@ -105,30 +105,50 @@ module.exports = async function handler(req, res) {
     // ── Balance transfer between accounts ────────────────────────────────────
     if (body.action === 'transfer') {
       const { recipientAddress, recipientEmail, amount, fromChain } = body;
+      console.log(`[TRANSFER] Starting transfer: recipient=${recipientAddress || recipientEmail}, amount=${amount}, fromChain=${fromChain}`);
+
       if (!amount || isNaN(amount) || amount <= 0) return res.status(400).json({ error: 'Invalid amount.' });
+
       // Find recipient by tronAddress or email
       let recipient = null;
       if (recipientAddress && !recipientAddress.includes('@')) {
+        console.log(`[TRANSFER] Looking for TRON address: ${recipientAddress}`);
         recipient = await User.findOne({ tronAddress: recipientAddress });
+        console.log(`[TRANSFER] Found by TRON: ${recipient ? recipient.email : 'NOT FOUND'}`);
       }
       if (!recipient && recipientEmail) {
+        console.log(`[TRANSFER] Looking for email: ${recipientEmail}`);
         recipient = await User.findOne({ email: recipientEmail.toLowerCase() });
+        console.log(`[TRANSFER] Found by email: ${recipient ? recipient.email : 'NOT FOUND'}`);
       }
       if (!recipient && recipientAddress && recipientAddress.includes('@')) {
+        console.log(`[TRANSFER] Looking for email (from address): ${recipientAddress}`);
         recipient = await User.findOne({ email: recipientAddress.toLowerCase() });
+        console.log(`[TRANSFER] Found: ${recipient ? recipient.email : 'NOT FOUND'}`);
       }
-      if (!recipient) return res.status(404).json({ error: 'Recipient not found on platform.' });
+
+      if (!recipient) {
+        console.error(`[TRANSFER] Recipient not found!`);
+        return res.status(404).json({ error: 'Recipient not found on platform.' });
+      }
+
       // Deduct from sender (skip for admin; skip entirely when fromChain — blockchain already moved tokens)
       if (user.email !== ADMIN_EMAIL && !fromChain) {
         if ((user.usdtBalance || 0) < amount) {
+          console.error(`[TRANSFER] Insufficient balance: ${user.usdtBalance} < ${amount}`);
           return res.status(400).json({ error: 'Insufficient balance.' });
         }
         user.usdtBalance = Math.max(0, (user.usdtBalance || 0) - Number(amount));
         await user.save();
+        console.log(`[TRANSFER] Deducted from sender ${user.email}: new balance=${user.usdtBalance}`);
       }
+
       // Credit recipient
-      recipient.usdtBalance = (recipient.usdtBalance || 0) + Number(amount);
+      const oldBalance = recipient.usdtBalance || 0;
+      recipient.usdtBalance = oldBalance + Number(amount);
       await recipient.save();
+      console.log(`[TRANSFER] ✓ Credited to ${recipient.email}: ${oldBalance} + ${amount} = ${recipient.usdtBalance}`);
+
       return res.status(200).json({
         ok: true,
         recipientEmail: recipient.email,
