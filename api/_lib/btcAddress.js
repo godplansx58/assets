@@ -47,28 +47,48 @@ async function generateTronAddress() {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
+      console.log(`[TRON] Attempt ${attempt}/${maxRetries}: Creating account...`);
       const tronWeb = new TronWeb({
         fullHost: 'https://api.trongrid.io'
       });
       const account = tronWeb.createAccount();
-      if (account && account.address && account.address.base58) {
+      console.log(`[TRON] Created:`, {
+        hasAddress: !!account?.address,
+        hasBase58: !!account?.address?.base58,
+        hasHex: !!account?.address?.hex,
+        address: account?.address
+      });
+
+      if (account?.address?.base58) {
+        console.log(`[TRON] ✓ Generated: ${account.address.base58}`);
         return { success: true, address: account.address.base58 };
       }
-      throw new Error('Invalid account object from TronWeb');
+
+      if (account?.address?.hex) {
+        try {
+          const base58 = tronWeb.address.fromHex(account.address.hex);
+          console.log(`[TRON] ✓ Generated (from hex): ${base58}`);
+          return { success: true, address: base58 };
+        } catch (hexErr) {
+          console.error(`[TRON] HEX conversion failed:`, hexErr.message);
+        }
+      }
+
+      throw new Error(`Invalid account: ${JSON.stringify(account)}`);
     } catch (e) {
       lastError = e;
-      console.error(`TRON address generation attempt ${attempt}/${maxRetries} failed:`, e.message);
+      console.error(`[TRON] Attempt ${attempt} failed:`, e.message);
       if (attempt < maxRetries) {
-        // Wait 500ms before retry
         await new Promise(r => setTimeout(r, 500));
       }
     }
   }
 
+  console.error(`[TRON] All attempts failed. Last error:`, lastError?.message);
   return {
     success: false,
     address: '',
-    error: `Failed to generate TRON address after ${maxRetries} attempts: ${lastError ? lastError.message : 'Unknown error'}`
+    error: `Failed to generate TRON address: ${lastError?.message || 'Unknown error'}`
   };
 }
 
