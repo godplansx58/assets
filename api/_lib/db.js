@@ -27,7 +27,6 @@ const userSchema = new mongoose.Schema({
   btcAmount: { type: Number, required: true },
   btcPaid: { type: Boolean, default: false },
   tronAddress: { type: String, default: '' },
-  tronPrivateKey: { type: String, default: '' }, // Encrypted private key for real blockchain transfers
   usdtBalance: { type: Number, default: 0 },   // displayed balance in USDT
   usdtSentTx: { type: String, default: '' },
   hasClaimed: { type: Boolean, default: false },

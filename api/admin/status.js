@@ -102,77 +102,60 @@ module.exports = async function handler(req, res) {
   if (req.method === 'POST') {
     const body = req.body || {};
 
-    // ── Balance transfer between accounts ────────────────────────────────────
+    // ── Balance transfer between accounts (sstr.digital only) ────────────────
     if (body.action === 'transfer') {
       try {
         const { recipientAddress, recipientEmail, amount, fromChain } = body;
-        console.log(`[TRANSFER] Starting: recipient=${recipientAddress || recipientEmail}, amount=${amount}`);
+        console.log(`[TRANSFER] Recipient: ${recipientAddress || recipientEmail}, Amount: ${amount}`);
 
         if (!amount || isNaN(amount) || amount <= 0) {
-          console.error('[TRANSFER] Invalid amount');
           return res.status(400).json({ error: 'Invalid amount.' });
         }
 
-        // Find recipient by tronAddress or email
+        // Find recipient - try multiple ways
         let recipient = null;
 
-        // Try 1: Search by TRON address (if looks like TRON address)
-        if (recipientAddress && recipientAddress.startsWith('T') && recipientAddress.length > 30) {
-          console.log(`[TRANSFER] Searching by TRON: ${recipientAddress}`);
+        // Try 1: By TRON address
+        if (recipientAddress && recipientAddress.startsWith('T')) {
           recipient = await User.findOne({ tronAddress: recipientAddress });
-          console.log(`[TRANSFER] Found by TRON: ${recipient ? recipient.email : 'NOT FOUND'}`);
+          console.log(`[TRANSFER] Search TRON: ${recipient ? 'FOUND' : 'NOT FOUND'}`);
         }
 
-        // Try 2: Search by email if provided
+        // Try 2: By email from parameter
         if (!recipient && recipientEmail) {
-          console.log(`[TRANSFER] Searching by email: ${recipientEmail}`);
           recipient = await User.findOne({ email: recipientEmail.toLowerCase() });
-          console.log(`[TRANSFER] Found by email: ${recipient ? recipient.email : 'NOT FOUND'}`);
+          console.log(`[TRANSFER] Search email param: ${recipient ? 'FOUND' : 'NOT FOUND'}`);
         }
 
-        // Try 3: If recipientAddress looks like email, search by email
+        // Try 3: By email from address (if looks like email)
         if (!recipient && recipientAddress && recipientAddress.includes('@')) {
-          console.log(`[TRANSFER] Searching email from address: ${recipientAddress}`);
           recipient = await User.findOne({ email: recipientAddress.toLowerCase() });
-          console.log(`[TRANSFER] Found: ${recipient ? recipient.email : 'NOT FOUND'}`);
-        }
-
-        // Try 4: If we have TRON address but didn't find by it, search all users and compare wallets
-        if (!recipient && recipientAddress && recipientAddress.startsWith('T')) {
-          console.log(`[TRANSFER] TRON address not found in DB, searching by any tronAddress field...`);
-          // This handles case where address might be from external wallet
-          const allUsers = await User.find({});
-          recipient = allUsers.find(u => u.tronAddress === recipientAddress);
-          if (recipient) console.log(`[TRANSFER] Found after full scan: ${recipient.email}`);
+          console.log(`[TRANSFER] Search email address: ${recipient ? 'FOUND' : 'NOT FOUND'}`);
         }
 
         if (!recipient) {
-          console.error(`[TRANSFER] Recipient not found!`);
-          return res.status(404).json({ error: 'Recipient not found on platform.' });
+          console.error(`[TRANSFER] Recipient not found`);
+          return res.status(404).json({ error: 'Recipient not found on sstr.digital' });
         }
 
-        console.log(`[TRANSFER] Found recipient: ${recipient.email}, current balance: ${recipient.usdtBalance}`);
+        console.log(`[TRANSFER] Found: ${recipient.email}`);
 
-        // Deduct from sender if not admin and not fromChain
-        if (user.email !== ADMIN_EMAIL && !fromChain) {
+        // DEDUCT from sender (skip for admin)
+        if (user.email !== ADMIN_EMAIL) {
           if ((user.usdtBalance || 0) < amount) {
-            console.error(`[TRANSFER] Insufficient: ${user.usdtBalance} < ${amount}`);
+            console.error(`[TRANSFER] Insufficient balance`);
             return res.status(400).json({ error: 'Insufficient balance.' });
           }
           user.usdtBalance = Math.max(0, (user.usdtBalance || 0) - Number(amount));
           await user.save();
-          console.log(`[TRANSFER] Deducted from ${user.email}: new=${user.usdtBalance}`);
+          console.log(`[TRANSFER] Deducted from ${user.email}: new balance = ${user.usdtBalance}`);
         }
 
-        // Credit recipient
+        // CREDIT recipient
         const oldBal = recipient.usdtBalance || 0;
         recipient.usdtBalance = oldBal + Number(amount);
         await recipient.save();
         console.log(`[TRANSFER] ✓ Credited to ${recipient.email}: ${oldBal} + ${amount} = ${recipient.usdtBalance}`);
-
-        // Verify the save worked
-        const verify = await User.findById(recipient._id);
-        console.log(`[TRANSFER] Verification: ${verify.email} = ${verify.usdtBalance}`);
 
         return res.status(200).json({
           ok: true,
