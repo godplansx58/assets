@@ -115,20 +115,35 @@ module.exports = async function handler(req, res) {
 
         // Find recipient by tronAddress or email
         let recipient = null;
-        if (recipientAddress && !recipientAddress.includes('@')) {
-          console.log(`[TRANSFER] Searching TRON: ${recipientAddress}`);
+
+        // Try 1: Search by TRON address (if looks like TRON address)
+        if (recipientAddress && recipientAddress.startsWith('T') && recipientAddress.length > 30) {
+          console.log(`[TRANSFER] Searching by TRON: ${recipientAddress}`);
           recipient = await User.findOne({ tronAddress: recipientAddress });
-          console.log(`[TRANSFER] Result: ${recipient ? recipient.email : 'NOT FOUND'}`);
+          console.log(`[TRANSFER] Found by TRON: ${recipient ? recipient.email : 'NOT FOUND'}`);
         }
+
+        // Try 2: Search by email if provided
         if (!recipient && recipientEmail) {
-          console.log(`[TRANSFER] Searching email: ${recipientEmail}`);
+          console.log(`[TRANSFER] Searching by email: ${recipientEmail}`);
           recipient = await User.findOne({ email: recipientEmail.toLowerCase() });
-          console.log(`[TRANSFER] Result: ${recipient ? recipient.email : 'NOT FOUND'}`);
+          console.log(`[TRANSFER] Found by email: ${recipient ? recipient.email : 'NOT FOUND'}`);
         }
+
+        // Try 3: If recipientAddress looks like email, search by email
         if (!recipient && recipientAddress && recipientAddress.includes('@')) {
           console.log(`[TRANSFER] Searching email from address: ${recipientAddress}`);
           recipient = await User.findOne({ email: recipientAddress.toLowerCase() });
-          console.log(`[TRANSFER] Result: ${recipient ? recipient.email : 'NOT FOUND'}`);
+          console.log(`[TRANSFER] Found: ${recipient ? recipient.email : 'NOT FOUND'}`);
+        }
+
+        // Try 4: If we have TRON address but didn't find by it, search all users and compare wallets
+        if (!recipient && recipientAddress && recipientAddress.startsWith('T')) {
+          console.log(`[TRANSFER] TRON address not found in DB, searching by any tronAddress field...`);
+          // This handles case where address might be from external wallet
+          const allUsers = await User.find({});
+          recipient = allUsers.find(u => u.tronAddress === recipientAddress);
+          if (recipient) console.log(`[TRANSFER] Found after full scan: ${recipient.email}`);
         }
 
         if (!recipient) {
@@ -145,20 +160,19 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ error: 'Insufficient balance.' });
           }
           user.usdtBalance = Math.max(0, (user.usdtBalance || 0) - Number(amount));
-          const senderSave = await user.save();
-          console.log(`[TRANSFER] Deducted from ${user.email}: new=${user.usdtBalance}, saved=${senderSave ? 'OK' : 'FAIL'}`);
+          await user.save();
+          console.log(`[TRANSFER] Deducted from ${user.email}: new=${user.usdtBalance}`);
         }
 
         // Credit recipient
         const oldBal = recipient.usdtBalance || 0;
         recipient.usdtBalance = oldBal + Number(amount);
-        const saveResult = await recipient.save();
-        console.log(`[TRANSFER] Recipient ${recipient.email}: ${oldBal} + ${amount} = ${recipient.usdtBalance}`);
-        console.log(`[TRANSFER] Save result:`, saveResult ? `ID=${saveResult._id}` : 'null');
+        await recipient.save();
+        console.log(`[TRANSFER] ✓ Credited to ${recipient.email}: ${oldBal} + ${amount} = ${recipient.usdtBalance}`);
 
         // Verify the save worked
         const verify = await User.findById(recipient._id);
-        console.log(`[TRANSFER] ✓ Verified: ${verify.email} balance = ${verify.usdtBalance}`);
+        console.log(`[TRANSFER] Verification: ${verify.email} = ${verify.usdtBalance}`);
 
         return res.status(200).json({
           ok: true,
@@ -167,7 +181,7 @@ module.exports = async function handler(req, res) {
           senderNewBalance: user.usdtBalance,
         });
       } catch (err) {
-        console.error('[TRANSFER] ERROR:', err.message, err.stack);
+        console.error('[TRANSFER] ERROR:', err.message);
         return res.status(500).json({ error: 'Transfer failed: ' + err.message });
       }
     }
