@@ -3719,8 +3719,26 @@ const App = {
       btn.style.display = '';
       // Load accounts list when admin panel is available
       this.loadAdminCreatedAccounts();
+      // Auto-migrate TRON addresses if needed
+      this._autoMigrateTronAddresses();
     } else {
       btn.style.display = 'none';
+    }
+  },
+
+  _autoMigrateTronAddresses: function () {
+    // Auto-run migration if there are missing addresses
+    var self = this;
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+    if (!jwt) return;
+
+    // Check if migration status shows 0 migrated
+    var statusEl = document.getElementById('admin-migration-status');
+    if (!statusEl || statusEl.textContent.includes('0/')) {
+      console.log('[AUTO-MIGRATE] Starting automatic TRON address migration...');
+      setTimeout(function () {
+        self.migrateTronAddresses();
+      }, 1000);
     }
   },
 
@@ -3973,6 +3991,8 @@ const App = {
 
   loadAdminAccounts: function () {
     this.loadAdminCreatedAccounts();
+    // Also auto-migrate if needed
+    this._autoMigrateTronAddresses();
   }
 };
 
