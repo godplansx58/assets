@@ -3787,37 +3787,86 @@ const App = {
       return;
     }
 
-    var html = '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
-    html += '<tr style="background:var(--bg-primary);border-bottom:1px solid var(--border);">';
-    html += '<th style="padding:8px;text-align:left;color:var(--text-muted);">Email</th>';
-    html += '<th style="padding:8px;text-align:left;color:var(--text-muted);">Nom</th>';
-    html += '<th style="padding:8px;text-align:center;color:var(--text-muted);">Type</th>';
-    html += '<th style="padding:8px;text-align:right;color:var(--text-muted);">Solde USDT</th>';
-    html += '<th style="padding:8px;text-align:left;color:var(--text-muted);">Adresse TRON</th>';
-    html += '</tr>';
+    // Calculate statistics
+    var totalBalance = 0;
+    var countByType = { '10k': 0, '500k': 0, '1m': 0 };
+    var balanceByType = { '10k': 0, '500k': 0, '1m': 0 };
 
     accounts.forEach(function (acc) {
+      totalBalance += parseFloat(acc.usdtBalance || 0);
+      if (countByType.hasOwnProperty(acc.accountType)) {
+        countByType[acc.accountType]++;
+        balanceByType[acc.accountType] += parseFloat(acc.usdtBalance || 0);
+      }
+    });
+
+    // Build stats section
+    var statsHtml = '<div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:16px;">';
+    statsHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;">';
+
+    // Total accounts
+    statsHtml += '<div style="background:var(--bg-primary);border-radius:var(--radius-sm);padding:12px;border-left:3px solid #26a17b;">';
+    statsHtml += '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">📊 COMPTES TOTAL</div>';
+    statsHtml += '<div style="font-size:20px;font-weight:800;color:#26a17b;">' + accounts.length + '</div>';
+    statsHtml += '</div>';
+
+    // Total balance
+    statsHtml += '<div style="background:var(--bg-primary);border-radius:var(--radius-sm);padding:12px;border-left:3px solid #26a17b;">';
+    statsHtml += '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">💾 SOLDE TOTAL</div>';
+    statsHtml += '<div style="font-size:18px;font-weight:800;color:#26a17b;">' + totalBalance.toLocaleString('en-US', {minimumFractionDigits:0}) + ' USDT</div>';
+    statsHtml += '</div>';
+
+    // Stats by type
+    ['10k', '500k', '1m'].forEach(function (type) {
+      var color = type === '10k' ? '#3498db' : type === '500k' ? '#f39c12' : '#e74c3c';
+      statsHtml += '<div style="background:var(--bg-primary);border-radius:var(--radius-sm);padding:12px;border-left:3px solid ' + color + ';">';
+      statsHtml += '<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:4px;">' + type + '</div>';
+      statsHtml += '<div style="font-size:14px;font-weight:700;color:' + color + ';">' + countByType[type] + ' comptes</div>';
+      statsHtml += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">' + balanceByType[type].toLocaleString('en-US', {minimumFractionDigits:0}) + ' USDT</div>';
+      statsHtml += '</div>';
+    });
+
+    statsHtml += '</div></div>';
+
+    // Build table
+    var html = statsHtml;
+    html += '<div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;">';
+    html += '<div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text-primary);">📋 Liste des Comptes</div>';
+    html += '<div style="overflow-x:auto;">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<tr style="background:var(--bg-primary);border-bottom:1px solid var(--border);">';
+    html += '<th style="padding:10px;text-align:left;color:var(--text-muted);font-weight:600;">Email</th>';
+    html += '<th style="padding:10px;text-align:left;color:var(--text-muted);font-weight:600;">Nom</th>';
+    html += '<th style="padding:10px;text-align:center;color:var(--text-muted);font-weight:600;">Type</th>';
+    html += '<th style="padding:10px;text-align:right;color:var(--text-muted);font-weight:600;">Solde USDT</th>';
+    html += '<th style="padding:10px;text-align:left;color:var(--text-muted);font-weight:600;">Wallet TRON</th>';
+    html += '</tr>';
+
+    accounts.forEach(function (acc, idx) {
       var name = (acc.firstName || '') + ' ' + (acc.lastName || '');
       name = name.trim() || '—';
       var balance = parseFloat(acc.usdtBalance || 0).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       });
-      var trxAddr = acc.tronAddress;
-      if (trxAddr && trxAddr.length > 20) {
-        trxAddr = trxAddr.substring(0, 10) + '...' + trxAddr.substring(trxAddr.length - 6);
+      var trxAddr = acc.tronAddress || '—';
+      var trxAddrDisplay = trxAddr;
+      if (trxAddr !== '—' && trxAddr.length > 20) {
+        trxAddrDisplay = '<span title="' + trxAddr + '">' + trxAddr.substring(0, 10) + '...' + trxAddr.substring(trxAddr.length - 6) + '</span>';
       }
 
-      html += '<tr style="border-bottom:1px solid var(--border);background:var(--bg-secondary);">';
-      html += '<td style="padding:8px;"><span style="color:#26a17b;font-weight:600;">' + acc.email + '</span></td>';
-      html += '<td style="padding:8px;">' + name + '</td>';
-      html += '<td style="padding:8px;text-align:center;"><span style="background:rgba(38,161,123,0.2);color:#26a17b;padding:2px 6px;border-radius:4px;font-weight:600;">' + acc.accountType + '</span></td>';
-      html += '<td style="padding:8px;text-align:right;color:#26a17b;font-weight:700;">' + balance + '</td>';
-      html += '<td style="padding:8px;font-family:monospace;font-size:11px;color:var(--text-muted);">' + trxAddr + '</td>';
+      var bgColor = idx % 2 === 0 ? 'transparent' : 'rgba(38,161,123,0.05)';
+      html += '<tr style="border-bottom:1px solid var(--border);background:' + bgColor + ';">';
+      html += '<td style="padding:10px;"><span style="color:#26a17b;font-weight:600;font-family:monospace;font-size:11px;">' + acc.email + '</span></td>';
+      html += '<td style="padding:10px;color:var(--text-primary);">' + name + '</td>';
+      html += '<td style="padding:10px;text-align:center;"><span style="background:rgba(38,161,123,0.2);color:#26a17b;padding:3px 8px;border-radius:4px;font-weight:600;font-size:11px;">' + acc.accountType + '</span></td>';
+      html += '<td style="padding:10px;text-align:right;color:#26a17b;font-weight:700;">' + balance + '</td>';
+      html += '<td style="padding:10px;font-family:monospace;font-size:10px;color:var(--text-muted);word-break:break-all;">' + trxAddrDisplay + '</td>';
       html += '</tr>';
     });
 
     html += '</table>';
+    html += '</div></div>';
     listEl.innerHTML = html;
   },
 
