@@ -82,20 +82,47 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ accounts: result });
   }
 
+  // ── Admin: GET custom claim requests (from users created by admin) ──────────────
+  if (req.method === 'GET' && req.query.action === 'claim_requests') {
+    if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
+    const requests = await User.find(
+      { claimStatus: { $in: ['requested', 'approved', 'rejected'] }, claimRequestAmount: { $gt: 0 } },
+      'email firstName lastName accountType claimStatus claimRequestAmount claimRequestedAt usdtBalance createdAt'
+    ).sort({ claimRequestedAt: -1 }).lean();
+    const result = requests.map(function (u) {
+      return {
+        _id:                  u._id,
+        email:                u.email,
+        firstName:            u.firstName || '',
+        lastName:             u.lastName  || '',
+        accountType:          u.accountType,
+        claimStatus:          u.claimStatus,
+        claimRequestAmount:   u.claimRequestAmount || 0,
+        claimRequestedAt:     u.claimRequestedAt,
+        usdtBalance:          u.usdtBalance || 0,
+        createdAt:            u.createdAt,
+      };
+    });
+    return res.status(200).json({ claimRequests: result });
+  }
+
   if (req.method === 'GET') {
     return res.status(200).json({
-      email:       user.email,
-      accountType: user.accountType,
-      status:      user.status,
-      btcAddress:  user.btcAddress,
-      btcAmount:   user.btcAmount,
-      btcPaid:     user.btcPaid,
-      paymentRef:  generatePaymentRef(user._id),
-      tronAddress: user.tronAddress,
-      usdtAmount:  PLAN_USDT[user.accountType],
-      usdtBalance: user.usdtBalance || 0,
-      usdtSentTx:  user.usdtSentTx,
-      approvedAt:  user.approvedAt,
+      email:              user.email,
+      accountType:        user.accountType,
+      status:             user.status,
+      btcAddress:         user.btcAddress,
+      btcAmount:          user.btcAmount,
+      btcPaid:            user.btcPaid,
+      paymentRef:         generatePaymentRef(user._id),
+      tronAddress:        user.tronAddress,
+      usdtAmount:         PLAN_USDT[user.accountType],
+      usdtBalance:        user.usdtBalance || 0,
+      usdtSentTx:         user.usdtSentTx,
+      approvedAt:         user.approvedAt,
+      claimStatus:        user.claimStatus,
+      claimRequestAmount: user.claimRequestAmount || 0,
+      claimRequestedAt:   user.claimRequestedAt,
     });
   }
 
@@ -169,8 +196,57 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // ── Admin: approve / reject claim ───────────────────────────────────────
-    if (body.action === 'approve_claim' || body.action === 'reject_claim') {
+    // ── User: Request a custom claim amount ─────────────────────────────────────
+    if (body.action === 'request_claim') {
+      const { amount } = body;
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount.' });
+      }
+
+      user.claimStatus = 'requested';
+      user.claimRequestAmount = Number(amount);
+      user.claimRequestedAt = new Date();
+      await user.save();
+
+      console.log(`[CLAIM] User ${user.email} requested ${amount} USDT`);
+      return res.status(200).json({
+        ok: true,
+        message: 'Claim request submitted',
+        claimStatus: user.claimStatus,
+        claimRequestAmount: user.claimRequestAmount
+      });
+    }
+
+    // ── Admin: approve / reject custom claim request ──────────────────────────────
+    if (body.action === 'approve_claim_request' || body.action === 'reject_claim_request') {
+      if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
+      if (!body.userId) return res.status(400).json({ error: 'userId required.' });
+
+      const target = await User.findById(body.userId);
+      if (!target) return res.status(404).json({ error: 'Target user not found.' });
+
+      if (body.action === 'approve_claim_request') {
+        const amount = target.claimRequestAmount || 0;
+        if (amount <= 0) {
+          return res.status(400).json({ error: 'No valid claim request amount.' });
+        }
+        target.usdtBalance = (target.usdtBalance || 0) + amount;
+        target.hasClaimed = true;
+        target.claimStatus = 'approved';
+        await target.save();
+        console.log(`[CLAIM_REQUEST] Approved: ${target.email} receives ${amount} USDT`);
+      } else {
+        target.claimStatus = 'rejected';
+        await target.save();
+        console.log(`[CLAIM_REQUEST] Rejected: ${target.email}`);
+      }
+
+      return res.status(200).json({
+        ok: true,
+        claimStatus: target.claimStatus,
+        usdtBalance: target.usdtBalance
+      });
+    }
       if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
       if (!body.userId) return res.status(400).json({ error: 'userId required.' });
 

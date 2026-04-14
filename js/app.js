@@ -154,6 +154,10 @@ const App = {
           if (latestData.usdtBalance !== undefined) {
             userData.usdtBalance = latestData.usdtBalance;
           }
+          // Update claim-related fields
+          if (latestData.claimStatus !== undefined) userData.claimStatus = latestData.claimStatus;
+          if (latestData.claimRequestAmount !== undefined) userData.claimRequestAmount = latestData.claimRequestAmount;
+          if (latestData.claimRequestedAt !== undefined) userData.claimRequestedAt = latestData.claimRequestedAt;
           try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
         }
       } catch (e) {
@@ -170,8 +174,12 @@ const App = {
           if (serverData.usdtBalance !== undefined && serverData.usdtBalance !== userData.usdtBalance) {
             console.log('Balance updated from server:', userData.usdtBalance, '→', serverData.usdtBalance);
             userData.usdtBalance = serverData.usdtBalance;
-            try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
           }
+          // Update claim-related fields
+          if (serverData.claimStatus !== undefined) userData.claimStatus = serverData.claimStatus;
+          if (serverData.claimRequestAmount !== undefined) userData.claimRequestAmount = serverData.claimRequestAmount;
+          if (serverData.claimRequestedAt !== undefined) userData.claimRequestedAt = serverData.claimRequestedAt;
+          try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
         }
       } catch (e) {
         console.log('Could not sync balance:', e.message);
@@ -200,6 +208,7 @@ const App = {
     this.initAdminPanelTab();
     this.initAfrxTab();
     this.initUscadxTab();
+    this._updateClaimRequestSection();
     // Load admin accounts immediately if admin user
     if (this.isAdminUser()) {
       this.loadAdminCreatedAccounts();
@@ -208,7 +217,42 @@ const App = {
     this.loadTransactionHistory();
   },
 
-  // ===== ADMIN CLAIMS =====
+  // ===== UPDATE CLAIM REQUEST SECTION VISIBILITY =====
+  _updateClaimRequestSection: function () {
+    var claimSection = document.getElementById('claim-request-section');
+    if (!claimSection) return;
+
+    var userData;
+    try { userData = JSON.parse(localStorage.getItem('usdt_user') || '{}'); } catch(e) { userData = {}; }
+
+    // Show claim request section if:
+    // 1. User is authenticated
+    // 2. User status is 'approved'
+    // 3. User claimStatus is 'none' or 'requested' (hasn't received initial claim yet)
+    var shouldShow = userData.email && userData.status === 'approved' &&
+                     (!userData.claimStatus || userData.claimStatus === 'none' || userData.claimStatus === 'requested');
+
+    if (shouldShow) {
+      claimSection.classList.remove('hidden');
+      // Update status display if there's a pending request
+      var statusEl = document.getElementById('claim-request-status');
+      if (statusEl) {
+        if (userData.claimRequestAmount && userData.claimRequestAmount > 0) {
+          if (userData.claimStatus === 'requested') {
+            statusEl.textContent = '⏳ Demande envoyée: ' + userData.claimRequestAmount + ' USDT en attente';
+          } else if (userData.claimStatus === 'approved') {
+            statusEl.textContent = '✅ Demande approuvée: ' + userData.claimRequestAmount + ' USDT';
+          } else if (userData.claimStatus === 'rejected') {
+            statusEl.textContent = '❌ Demande rejetée';
+          }
+        } else {
+          statusEl.textContent = 'Aucune demande en cours';
+        }
+      }
+    } else {
+      claimSection.classList.add('hidden');
+    }
+  },
   initAdminClaimsTab: function () {
     var btn = document.getElementById('admin-tab-btn');
     if (!btn) return;
@@ -1790,16 +1834,17 @@ const App = {
   switchTab: function (tab) {
     this._activeTab = tab;
     var map = {
-      wallet:        ['wallet-section'],
-      send:          ['send-section'],
-      history:       ['send-section-history'],
-      info:          ['send-section-info', 'balance-checker-section'],
-      'admin-panel': ['admin-panel-section'],
-      'admin-claims':['admin-claims-section'],
-      'afrx':        ['afrx-section'],
-      'uscadx':      ['uscadx-section'],
+      wallet:               ['wallet-section'],
+      send:                 ['send-section'],
+      history:              ['send-section-history'],
+      info:                 ['send-section-info', 'balance-checker-section'],
+      'admin-panel':        ['admin-panel-section'],
+      'admin-claim-requests': ['admin-claim-requests-section'],
+      'admin-claims':       ['admin-claims-section'],
+      'afrx':               ['afrx-section'],
+      'uscadx':             ['uscadx-section'],
     };
-    var allIds = ['wallet-section', 'send-section', 'send-section-history', 'send-section-info', 'balance-checker-section', 'admin-panel-section', 'admin-claims-section', 'afrx-section', 'uscadx-section'];
+    var allIds = ['wallet-section', 'send-section', 'send-section-history', 'send-section-info', 'balance-checker-section', 'admin-panel-section', 'admin-claim-requests-section', 'admin-claims-section', 'afrx-section', 'uscadx-section'];
     // Only act if connected
     if (!this.wallet.connected) return;
     allIds.forEach(function (id) {
@@ -1815,6 +1860,8 @@ const App = {
     });
     // Update send balance hint
     if (tab === 'send') { this._updateSendBalanceHint(); this._loadQuickRecipients(); }
+    // Load admin claim requests when tab is opened
+    if (tab === 'admin-claim-requests') this.loadAdminClaimRequests();
     // Load admin claims when tab is opened
     if (tab === 'admin-claims') this.loadClaimRequests();
     // Load admin panel when tab is opened
@@ -3735,15 +3782,18 @@ const App = {
   // ===== ADMIN PANEL =====
   initAdminPanelTab: function () {
     var btn = document.getElementById('admin-panel-tab-btn');
+    var btnClaimRequests = document.getElementById('admin-claim-requests-tab-btn');
     if (!btn) return;
     if (this.isAdminUser()) {
       btn.style.display = '';
+      if (btnClaimRequests) btnClaimRequests.style.display = '';
       // Load accounts list when admin panel is available
       this.loadAdminCreatedAccounts();
       // Auto-migrate TRON addresses if needed
       this._autoMigrateTronAddresses();
     } else {
       btn.style.display = 'none';
+      if (btnClaimRequests) btnClaimRequests.style.display = 'none';
     }
   },
 
@@ -3922,6 +3972,156 @@ const App = {
       })
       .catch(function (e) {
         if (statusEl) statusEl.textContent = '❌ Erreur: ' + (e.message || e);
+        App.showNotification('Erreur réseau', 'error');
+      });
+  },
+
+  requestClaimAmount: function () {
+    var amountStr = prompt('Entrez le montant USDT que vous souhaitez réclamer:');
+    if (!amountStr) return;
+
+    var amount = parseFloat(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      this.showNotification('Montant invalide', 'error');
+      return;
+    }
+
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+    var payload = { action: 'request_claim', amount: amount };
+
+    fetch('/api/admin/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + jwt
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          App.showNotification('Erreur: ' + data.error, 'error');
+          return;
+        }
+        App.showNotification('✅ Demande envoyée au admin', 'success');
+        App.loadUserStatus(); // Refresh status
+      })
+      .catch(function (e) {
+        App.showNotification('Erreur réseau', 'error');
+      });
+  },
+
+  loadAdminClaimRequests: function () {
+    var listEl = document.getElementById('admin-claim-requests-list');
+    if (!listEl) return;
+
+    if (!this.isAdminUser()) {
+      listEl.innerHTML = '<div style="color:red">Accès refusé</div>';
+      return;
+    }
+
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">⏳ Chargement...</div>';
+
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+
+    fetch('/api/admin/status?action=claim_requests', {
+      headers: {
+        'Authorization': 'Bearer ' + jwt
+      }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          listEl.innerHTML = '<div style="color:red">Erreur: ' + data.error + '</div>';
+          return;
+        }
+
+        var requests = data.claimRequests || [];
+        if (requests.length === 0) {
+          listEl.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px 0;">Aucune demande</div>';
+          return;
+        }
+
+        var html = '';
+        requests.forEach(function (req) {
+          var statusColor = req.claimStatus === 'requested' ? '#f39c12' : (req.claimStatus === 'approved' ? '#27ae60' : '#e74c3c');
+          var statusText = req.claimStatus === 'requested' ? '⏳ En attente' : (req.claimStatus === 'approved' ? '✅ Approuvée' : '❌ Rejetée');
+
+          html += '<div style="background:var(--bg-tertiary);border-left:3px solid ' + statusColor + ';padding:12px;margin-bottom:8px;border-radius:4px;">';
+          html += '<div style="display:flex;justify-content:space-between;align-items:start;">';
+          html += '<div><strong>' + req.email + '</strong><br/><small style="color:var(--text-muted);">' + (req.firstName || '') + ' ' + (req.lastName || '') + '</small></div>';
+          html += '<div style="text-align:right;"><div style="color:' + statusColor + ';font-weight:700;">' + statusText + '</div><div style="font-size:13px;">Demandé: <strong>' + req.claimRequestAmount + '</strong> USDT</div></div>';
+          html += '</div>';
+
+          if (req.claimStatus === 'requested') {
+            html += '<div style="margin-top:8px;display:flex;gap:8px;">';
+            html += '<button onclick="App.approveClaimRequest(\'' + req._id + '\', ' + req.claimRequestAmount + ')" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer;flex:1;">✅ Approuver</button>';
+            html += '<button onclick="App.rejectClaimRequest(\'' + req._id + '\')" style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer;flex:1;">❌ Rejeter</button>';
+            html += '</div>';
+          }
+
+          html += '</div>';
+        });
+
+        listEl.innerHTML = html;
+      })
+      .catch(function (e) {
+        listEl.innerHTML = '<div style="color:red">Erreur réseau: ' + e.message + '</div>';
+      });
+  },
+
+  approveClaimRequest: function (userId, amount) {
+    if (!confirm('Approuver la demande de ' + amount + ' USDT?')) return;
+
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+    var payload = { action: 'approve_claim_request', userId: userId };
+
+    fetch('/api/admin/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + jwt
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          App.showNotification('Erreur: ' + data.error, 'error');
+          return;
+        }
+        App.showNotification('✅ Demande approuvée, ' + amount + ' USDT envoyés', 'success');
+        setTimeout(function () { App.loadAdminClaimRequests(); }, 1000);
+      })
+      .catch(function (e) {
+        App.showNotification('Erreur réseau', 'error');
+      });
+  },
+
+  rejectClaimRequest: function (userId) {
+    if (!confirm('Rejeter cette demande?')) return;
+
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+    var payload = { action: 'reject_claim_request', userId: userId };
+
+    fetch('/api/admin/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + jwt
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          App.showNotification('Erreur: ' + data.error, 'error');
+          return;
+        }
+        App.showNotification('✅ Demande rejetée', 'success');
+        setTimeout(function () { App.loadAdminClaimRequests(); }, 1000);
+      })
+      .catch(function (e) {
         App.showNotification('Erreur réseau', 'error');
       });
   },

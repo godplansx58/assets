@@ -84,6 +84,10 @@
       <span class="tab-icon">⚙️</span>
       <span class="tab-label">Admin</span>
     </button>
+    <button class="tab-btn" data-tab="admin-claim-requests" id="admin-claim-requests-tab-btn" style="display:none;" onclick="App.switchTab('admin-claim-requests')">
+      <span class="tab-icon">💰</span>
+      <span class="tab-label">Demandes Claim</span>
+    </button>
     <button class="tab-btn" data-tab="admin-claims" id="admin-tab-btn" style="display:none;" onclick="App.switchTab('admin-claims')">
       <span class="tab-icon">📋</span>
       <span class="tab-label">Demandes</span>
@@ -295,6 +299,22 @@
           <button class="deploy-warning-close" onclick="document.getElementById('deploy-warning-banner').classList.add('hidden')" title="Fermer">✕</button>
         </div>
       </div>
+    </div>
+
+    <!-- ===== CLAIM REQUEST SECTION (For users created by admin) ===== -->
+    <div class="card hidden" id="claim-request-section">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">💰</span> Demander une Allocation</div>
+      </div>
+      <div style="background:var(--bg-secondary); border-radius:var(--radius-sm); padding:12px; margin-bottom:12px;">
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Demandez le montant USDT que vous souhaitez réclamer. L'admin examinera votre demande.</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input id="claim-amount-input" type="number" min="0" step="1" placeholder="Montant en USDT"
+            style="flex:1; background:var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-size:14px;" />
+          <button onclick="App.requestClaimAmount()" style="background:linear-gradient(135deg,#3498db,#2980b9); color:#fff; border:none; border-radius:var(--radius-sm); padding:10px 20px; font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap;">📨 Demander</button>
+        </div>
+      </div>
+      <div id="claim-request-status" style="font-size:12px; color:var(--text-muted); padding:8px; background:var(--bg-tertiary); border-radius:var(--radius-sm); min-height:18px;"></div>
     </div>
 
     <!-- ===== SEND FORM ===== -->
@@ -520,6 +540,17 @@
         <div id="admin-accounts-container-v2" style="max-height:500px;overflow-y:auto;">
           <div style="text-align:center;color:var(--text-muted);padding:20px 0;">📊 Chargement comptes admin...</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== ADMIN CLAIM REQUESTS (Custom Amounts) ===== -->
+    <div class="card hidden" id="admin-claim-requests-section">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">💰</span> Demandes de Claim Personnalisées</div>
+        <button onclick="App.loadAdminClaimRequests()" style="background:var(--bg-primary);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);padding:6px 12px;font-size:12px;cursor:pointer;">🔄 Actualiser</button>
+      </div>
+      <div id="admin-claim-requests-list" style="margin-top:8px;max-height:500px;overflow-y:auto;">
+        <div style="text-align:center;color:var(--text-muted);padding:40px 0;">Aucune demande pour le moment</div>
       </div>
     </div>
 

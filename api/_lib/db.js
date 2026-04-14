@@ -30,7 +30,9 @@ const userSchema = new mongoose.Schema({
   usdtBalance: { type: Number, default: 0 },   // displayed balance in USDT
   usdtSentTx: { type: String, default: '' },
   hasClaimed: { type: Boolean, default: false },
-  claimStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+  claimStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected', 'requested'], default: 'none' },
+  claimRequestAmount: { type: Number, default: 0 },  // amount user requested
+  claimRequestedAt: { type: Date },                   // when user submitted the request
   claimMsgId: { type: Number, default: 0 },
   approvedAt: { type: Date },
   rejectedAt: { type: Date },
