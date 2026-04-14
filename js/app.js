@@ -171,6 +171,7 @@ const App = {
         });
         if (response.ok) {
           var serverData = await response.json();
+          if (serverData.status !== undefined) userData.status = serverData.status;
           if (serverData.usdtBalance !== undefined && serverData.usdtBalance !== userData.usdtBalance) {
             console.log('Balance updated from server:', userData.usdtBalance, '→', serverData.usdtBalance);
             userData.usdtBalance = serverData.usdtBalance;
