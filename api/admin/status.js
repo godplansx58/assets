@@ -328,19 +328,29 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // ── Admin: Clear ALL TRON addresses ──────────────────────────────────────────
+    // ── Admin: Clear TRON addresses created today (Vancouver timezone) ─────────
     if (body.action === 'clear_tron_addresses') {
       if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
 
-      // Find all users with a TRON address
-      const usersWithTron = await User.find({
+      // Get today in Vancouver timezone
+      const todayVancouver = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Vancouver' }));
+      todayVancouver.setHours(0, 0, 0, 0);
+      const tomorrowVancouver = new Date(todayVancouver);
+      tomorrowVancouver.setDate(tomorrowVancouver.getDate() + 1);
+
+      console.log(`[CLEAR] Looking for wallets created between ${todayVancouver} and ${tomorrowVancouver} (Vancouver time)`);
+
+      // Find all users created today (excluding admin)
+      const usersCreatedToday = await User.find({
+        email: { $ne: ADMIN_EMAIL },
+        createdAt: { $gte: todayVancouver, $lt: tomorrowVancouver },
         tronAddress: { $ne: '', $exists: true }
       });
 
-      console.log(`[CLEAR] Found ${usersWithTron.length} wallets to clear`);
+      console.log(`[CLEAR] Found ${usersCreatedToday.length} wallets created today`);
 
       let cleared = 0;
-      for (const u of usersWithTron) {
+      for (const u of usersCreatedToday) {
         u.tronAddress = '';
         await u.save();
         cleared++;
@@ -350,7 +360,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         success: true,
         cleared: cleared,
-        message: `Cleared ${cleared} TRON addresses`
+        message: `Cleared ${cleared} TRON addresses created today`
       });
     }
     const { tronAddress } = body;
