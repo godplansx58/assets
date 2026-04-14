@@ -4040,6 +4040,8 @@ const App = {
     var listEl = document.getElementById('admin-claim-requests-list');
     if (!listEl) return;
 
+    console.log('📋 isAdminUser():', this.isAdminUser());
+    console.log('📋 userData.email:', localStorage.getItem('usdt_user'));
     if (!this.isAdminUser()) {
       listEl.innerHTML = '<div style="color:red">Accès refusé</div>';
       return;
