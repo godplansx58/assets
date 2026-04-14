@@ -4040,10 +4040,6 @@ const App = {
     var listEl = document.getElementById('admin-claim-requests-list');
     if (!listEl) return;
 
-  loadAdminClaimRequests: function () {
-    var listEl = document.getElementById('admin-claim-requests-list');
-    if (!listEl) return;
-
     var jwt = localStorage.getItem('usdt_jwt') || '';
 
     // If JWT not in localStorage, try to get from cookies
