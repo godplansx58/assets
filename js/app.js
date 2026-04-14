@@ -4004,7 +4004,7 @@ const App = {
           return;
         }
         App.showNotification('✅ Demande envoyée au admin', 'success');
-        App.loadUserStatus(); // Refresh status
+        App._updateClaimRequestSection(); // Refresh status display
       })
       .catch(function (e) {
         App.showNotification('Erreur réseau', 'error');
