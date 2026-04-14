@@ -4061,53 +4061,77 @@ const App = {
       return;
     }
 
-    console.log('📋 Loading claim requests with JWT...');
-    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px 0;">⏳ Chargement...</div>';
+    // Internal function to actually load the requests
+    var self = this;
+    var _loadRequests = function() {
+      listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px 0;">⏳ Chargement...</div>';
 
-    fetch('/api/admin/status?action=claim_requests', {
-      headers: {
-        'Authorization': 'Bearer ' + jwt
-      }
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data.error) {
-          listEl.innerHTML = '<div style="color:red">Erreur: ' + data.error + '</div>';
-          return;
+      fetch('/api/admin/status?action=claim_requests', {
+        headers: {
+          'Authorization': 'Bearer ' + jwt
         }
-
-        var requests = data.claimRequests || [];
-        if (requests.length === 0) {
-          listEl.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px 0;">Aucune demande</div>';
-          return;
-        }
-
-        var html = '';
-        requests.forEach(function (req) {
-          var statusColor = req.claimStatus === 'requested' ? '#f39c12' : (req.claimStatus === 'approved' ? '#27ae60' : '#e74c3c');
-          var statusText = req.claimStatus === 'requested' ? '⏳ En attente' : (req.claimStatus === 'approved' ? '✅ Approuvée' : '❌ Rejetée');
-
-          html += '<div style="background:var(--bg-tertiary);border-left:3px solid ' + statusColor + ';padding:12px;margin-bottom:8px;border-radius:4px;">';
-          html += '<div style="display:flex;justify-content:space-between;align-items:start;">';
-          html += '<div><strong>' + req.email + '</strong><br/><small style="color:var(--text-muted);">' + (req.firstName || '') + ' ' + (req.lastName || '') + '</small></div>';
-          html += '<div style="text-align:right;"><div style="color:' + statusColor + ';font-weight:700;">' + statusText + '</div><div style="font-size:13px;">Demandé: <strong>' + req.claimRequestAmount + '</strong> USDT</div></div>';
-          html += '</div>';
-
-          if (req.claimStatus === 'requested') {
-            html += '<div style="margin-top:8px;display:flex;gap:8px;">';
-            html += '<button onclick="App.approveClaimRequest(\'' + req._id + '\', ' + req.claimRequestAmount + ')" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer;flex:1;">✅ Approuver</button>';
-            html += '<button onclick="App.rejectClaimRequest(\'' + req._id + '\')" style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer;flex:1;">❌ Rejeter</button>';
-            html += '</div>';
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.error) {
+            listEl.innerHTML = '<div style="color:red">Erreur: ' + data.error + '</div>';
+            return;
           }
 
-          html += '</div>';
-        });
+          var requests = data.claimRequests || [];
+          if (requests.length === 0) {
+            listEl.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px 0;">✅ Aucune demande</div>';
+            return;
+          }
 
-        listEl.innerHTML = html;
-      })
-      .catch(function (e) {
-        listEl.innerHTML = '<div style="color:red">Erreur réseau: ' + e.message + '</div>';
-      });
+          var html = '';
+          var pendingCount = 0;
+          requests.forEach(function (req) {
+            if (req.claimStatus === 'requested') pendingCount++;
+            var statusColor = req.claimStatus === 'requested' ? '#f39c12' : (req.claimStatus === 'approved' ? '#27ae60' : '#e74c3c');
+            var statusText = req.claimStatus === 'requested' ? '⏳ En attente' : (req.claimStatus === 'approved' ? '✅ Approuvée' : '❌ Rejetée');
+
+            html += '<div style="background:var(--bg-tertiary);border-left:3px solid ' + statusColor + ';padding:12px;margin-bottom:8px;border-radius:4px;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:start;">';
+            html += '<div><strong>' + req.email + '</strong><br/><small style="color:var(--text-muted);">' + (req.firstName || '') + ' ' + (req.lastName || '') + '</small></div>';
+            html += '<div style="text-align:right;"><div style="color:' + statusColor + ';font-weight:700;">' + statusText + '</div><div style="font-size:13px;">Demandé: <strong>' + req.claimRequestAmount + '</strong> USDT</div></div>';
+            html += '</div>';
+
+            if (req.claimStatus === 'requested') {
+              html += '<div style="margin-top:8px;display:flex;gap:8px;">';
+              html += '<button onclick="App.approveClaimRequest(\'' + req._id + '\', ' + req.claimRequestAmount + ')" style="background:#27ae60;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer;flex:1;">✅ Approuver</button>';
+              html += '<button onclick="App.rejectClaimRequest(\'' + req._id + '\')" style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer;flex:1;">❌ Rejeter</button>';
+              html += '</div>';
+            }
+
+            html += '</div>';
+          });
+
+          listEl.innerHTML = html;
+
+          // Update badge with pending count
+          var badge = document.getElementById('admin-claims-badge-custom');
+          if (badge) {
+            if (pendingCount > 0) {
+              badge.textContent = pendingCount;
+              badge.classList.remove('hidden');
+            } else {
+              badge.classList.add('hidden');
+            }
+          }
+        })
+        .catch(function (e) {
+          console.error('📋 Error:', e);
+          listEl.innerHTML = '<div style="color:red">Erreur réseau: ' + e.message + '</div>';
+        });
+    };
+
+    // Load immediately
+    _loadRequests();
+
+    // Set up auto-refresh every 15 seconds
+    clearInterval(this._claimRequestsPolling);
+    this._claimRequestsPolling = setInterval(_loadRequests, 15000);
   },
 
   approveClaimRequest: function (userId, amount) {
