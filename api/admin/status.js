@@ -328,25 +328,19 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // ── Admin: Clear TRON addresses created today ──────────────────────────────
+    // ── Admin: Clear ALL TRON addresses ──────────────────────────────────────────
     if (body.action === 'clear_tron_addresses') {
       if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
 
-      // Find all users created today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const usersCreatedToday = await User.find({
-        createdAt: { $gte: today, $lt: tomorrow },
+      // Find all users with a TRON address
+      const usersWithTron = await User.find({
         tronAddress: { $ne: '', $exists: true }
       });
 
-      console.log(`[CLEAR] Found ${usersCreatedToday.length} wallets created today`);
+      console.log(`[CLEAR] Found ${usersWithTron.length} wallets to clear`);
 
       let cleared = 0;
-      for (const u of usersCreatedToday) {
+      for (const u of usersWithTron) {
         u.tronAddress = '';
         await u.save();
         cleared++;
@@ -356,7 +350,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({
         success: true,
         cleared: cleared,
-        message: `Cleared ${cleared} TRON addresses created today`
+        message: `Cleared ${cleared} TRON addresses`
       });
     }
     const { tronAddress } = body;
