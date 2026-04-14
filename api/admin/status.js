@@ -128,6 +128,7 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'POST') {
     const body = req.body || {};
+    const { tronAddress } = body;
 
     // ── Balance transfer between accounts (sstr.digital only) ────────────────
     if (body.action === 'transfer') {
@@ -247,6 +248,9 @@ module.exports = async function handler(req, res) {
         usdtBalance: target.usdtBalance
       });
     }
+
+    // ── Admin: approve / reject claim (original system) ───────────────────────
+    if (body.action === 'approve_claim' || body.action === 'reject_claim') {
       if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
       if (!body.userId) return res.status(400).json({ error: 'userId required.' });
 
@@ -439,13 +443,16 @@ module.exports = async function handler(req, res) {
         message: `Cleared ${cleared} TRON addresses created today`
       });
     }
-    const { tronAddress } = body;
-    if (!tronAddress || !tronAddress.startsWith('T')) {
-      return res.status(400).json({ error: 'Invalid TRON address.' });
+
+    // ── Regular user: update TRON address ───────────────────────────────────
+    if (tronAddress) {
+      if (!tronAddress.startsWith('T')) {
+        return res.status(400).json({ error: 'Invalid TRON address.' });
+      }
+      user.tronAddress = tronAddress;
+      await user.save();
+      return res.status(200).json({ ok: true, tronAddress });
     }
-    user.tronAddress = tronAddress;
-    await user.save();
-    return res.status(200).json({ ok: true, tronAddress });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
