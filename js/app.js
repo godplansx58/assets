@@ -3986,7 +3986,29 @@ const App = {
       return;
     }
 
+    this._submitClaimRequest(amount);
+  },
+
+  requestClaimAmountFromInput: function () {
+    var input = document.getElementById('claim-amount-input');
+    if (!input) return;
+
+    var amount = parseFloat(input.value);
+    if (isNaN(amount) || amount <= 0) {
+      this.showNotification('Entrez un montant valide', 'error');
+      return;
+    }
+
+    this._submitClaimRequest(amount);
+  },
+
+  _submitClaimRequest: function (amount) {
     var jwt = localStorage.getItem('usdt_jwt') || '';
+    if (!jwt) {
+      this.showNotification('Non authentifié', 'error');
+      return;
+    }
+
     var payload = { action: 'request_claim', amount: amount };
 
     fetch('/api/admin/status', {
@@ -4004,10 +4026,13 @@ const App = {
           return;
         }
         App.showNotification('✅ Demande envoyée au admin', 'success');
+        var input = document.getElementById('claim-amount-input');
+        if (input) input.value = '';
         App._updateClaimRequestSection(); // Refresh status display
       })
       .catch(function (e) {
-        App.showNotification('Erreur réseau', 'error');
+        console.error('Error:', e);
+        App.showNotification('Erreur réseau: ' + (e.message || e), 'error');
       });
   },
 
