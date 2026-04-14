@@ -4040,16 +4040,14 @@ const App = {
     var listEl = document.getElementById('admin-claim-requests-list');
     if (!listEl) return;
 
-    console.log('📋 isAdminUser():', this.isAdminUser());
-    console.log('📋 userData.email:', localStorage.getItem('usdt_user'));
-    if (!this.isAdminUser()) {
-      listEl.innerHTML = '<div style="color:red">Accès refusé</div>';
+    var jwt = localStorage.getItem('usdt_jwt') || '';
+    if (!jwt) {
+      listEl.innerHTML = '<div style="color:red">Non authentifié (JWT manquant)</div>';
       return;
     }
 
-    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px 0;">⏳ Chargement...</div>';
-
-    var jwt = localStorage.getItem('usdt_jwt') || '';
+    console.log('📋 Loading claim requests with JWT...');
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:40px 0;">⏳ Chargement...</div>';
 
     fetch('/api/admin/status?action=claim_requests', {
       headers: {
