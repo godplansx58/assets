@@ -4040,9 +4040,27 @@ const App = {
     var listEl = document.getElementById('admin-claim-requests-list');
     if (!listEl) return;
 
+  loadAdminClaimRequests: function () {
+    var listEl = document.getElementById('admin-claim-requests-list');
+    if (!listEl) return;
+
     var jwt = localStorage.getItem('usdt_jwt') || '';
+
+    // If JWT not in localStorage, try to get from cookies
     if (!jwt) {
-      listEl.innerHTML = '<div style="color:red">Non authentifié (JWT manquant)</div>';
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        if (cookie.startsWith('usdt_jwt=')) {
+          jwt = cookie.substring('usdt_jwt='.length);
+          localStorage.setItem('usdt_jwt', jwt);
+          break;
+        }
+      }
+    }
+
+    if (!jwt) {
+      listEl.innerHTML = '<div style="color:red">❌ Non authentifié (JWT manquant)<br><small>Veuillez vous reconnecter</small></div>';
       return;
     }
 
