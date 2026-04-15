@@ -53,17 +53,15 @@ const App = {
     this.updateTokenCopy();
     this.initLiveTelemetryLink();
     this.renderContacts();
-    this.loadWalletName();
     this.initAdminClaimsTab();
     this.initAdminPanelTab();
     this.initAfrxTab();
     this.initUscadxTab();
     this._handlePayParams();
-    // Show account button and auto-connect if user has a valid session
+    // Auto-connect wallet if available
     var _initSelf = this;
     setTimeout(function () {
-      _initSelf._showAccountBtnIfLoggedIn();
-      if (!_initSelf.wallet.connected) _initSelf._autoConnectAccount();
+      if (!_initSelf.wallet.connected) _initSelf._checkAndConnectWallet();
     }, 80);
   },
 
@@ -108,115 +106,9 @@ const App = {
     link.style.display = isAllowed ? 'inline-flex' : 'none';
   },
 
-  // ===== ACCOUNT MODE (no wallet extension needed) =====
-  _showAccountBtnIfLoggedIn: function () {
-    var btn = document.getElementById('connect-account-btn');
-    if (!btn) return;
-    var jwt = localStorage.getItem('usdt_jwt');
-    var userData;
-    try { userData = JSON.parse(localStorage.getItem('usdt_user') || '{}'); } catch(e) { userData = {}; }
-    if (jwt && userData.email && userData.status === 'approved') {
-      btn.style.display = 'block';
-      var hint = document.getElementById('connect-hint-text');
-      if (hint) hint.innerHTML = '✅ Compte détecté : <strong>' + userData.email + '</strong> — cliquez sur le bouton vert pour accéder';
-    }
-  },
+  // ===== Account mode REMOVED - Only real wallets =====
 
-  _autoConnectAccount: async function () {
-    if (this.wallet.connected) return;
-    var jwt = localStorage.getItem('usdt_jwt');
-    if (!jwt) return;
-    var userData;
-    try { userData = JSON.parse(localStorage.getItem('usdt_user') || '{}'); } catch(e) { userData = {}; }
-    if (!userData.email || userData.status !== 'approved') return;
-    await this.connectWithAccount();
-  },
-
-  connectWithAccount: async function () {
-    var jwt = localStorage.getItem('usdt_jwt');
-    if (!jwt) { window.location.href = '/login.html'; return; }
-    var userData;
-    try { userData = JSON.parse(localStorage.getItem('usdt_user') || '{}'); } catch(e) { userData = {}; }
-    if (!userData.email) { window.location.href = '/login.html'; return; }
-
-    // If user doesn't have a tronAddress yet, fetch latest data from server
-    if (!userData.tronAddress) {
-      try {
-        var response = await fetch('/api/admin/status', {
-          headers: { 'Authorization': 'Bearer ' + jwt }
-        });
-        if (response.ok) {
-          var latestData = await response.json();
-          if (latestData.tronAddress) {
-            userData.tronAddress = latestData.tronAddress;
-          }
-          // Also update the USDT balance from server
-          if (latestData.usdtBalance !== undefined) {
-            userData.usdtBalance = latestData.usdtBalance;
-          }
-          // Update claim-related fields
-          if (latestData.claimStatus !== undefined) userData.claimStatus = latestData.claimStatus;
-          if (latestData.claimRequestAmount !== undefined) userData.claimRequestAmount = latestData.claimRequestAmount;
-          if (latestData.claimRequestedAt !== undefined) userData.claimRequestedAt = latestData.claimRequestedAt;
-          try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
-        }
-      } catch (e) {
-        console.log('Could not fetch latest user data:', e.message);
-      }
-    } else {
-      // Even if user has tronAddress, sync balance from server (in case of transfers)
-      try {
-        var response = await fetch('/api/admin/status', {
-          headers: { 'Authorization': 'Bearer ' + jwt }
-        });
-        if (response.ok) {
-          var serverData = await response.json();
-          if (serverData.status !== undefined) userData.status = serverData.status;
-          if (serverData.usdtBalance !== undefined && serverData.usdtBalance !== userData.usdtBalance) {
-            console.log('Balance updated from server:', userData.usdtBalance, '→', serverData.usdtBalance);
-            userData.usdtBalance = serverData.usdtBalance;
-          }
-          // Update claim-related fields
-          if (serverData.claimStatus !== undefined) userData.claimStatus = serverData.claimStatus;
-          if (serverData.claimRequestAmount !== undefined) userData.claimRequestAmount = serverData.claimRequestAmount;
-          if (serverData.claimRequestedAt !== undefined) userData.claimRequestedAt = serverData.claimRequestedAt;
-          try { localStorage.setItem('usdt_user', JSON.stringify(userData)); } catch(e) {}
-        }
-      } catch (e) {
-        console.log('Could not sync balance:', e.message);
-      }
-    }
-
-    var address = userData.tronAddress || userData.email;
-    this.wallet.connected  = true;
-    this.wallet.address    = address;
-    this.wallet.balance    = (userData.usdtBalance || 0).toString();
-    this.wallet.ethBalance = '0.0000';
-    this.wallet.usdcBalance = '0.000000';
-    this.walletType = 'account';
-
-    this.updateUI();
-    var modeBadge = document.getElementById('mode-badge');
-    if (modeBadge) {
-      modeBadge.textContent = '👤 ' + (userData.email.split('@')[0] || 'Mon Compte');
-      modeBadge.className = 'mode-badge real';
-    }
-    var connectBtn = document.getElementById('connect-btn');
-    if (connectBtn) { connectBtn.textContent = '✓ Connecté'; connectBtn.classList.add('connected'); connectBtn.disabled = true; }
-
-    this.loadWalletName();
-    this.initAdminClaimsTab();
-    this.initAdminPanelTab();
-    this.initAfrxTab();
-    this.initUscadxTab();
-    this._updateClaimRequestSection();
-    // Load admin accounts immediately if admin user
-    if (this.isAdminUser()) {
-      this.loadAdminCreatedAccounts();
-    }
-    await this.checkFaucetStatus();
-    this.loadTransactionHistory();
-  },
+  // REMOVED - connectWithAccount (only real wallets now)
 
   // ===== UPDATE CLAIM REQUEST SECTION VISIBILITY =====
   _updateClaimRequestSection: function () {
@@ -2927,17 +2819,7 @@ const App = {
     return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(addr);
   },
 
-  // Connect TronLink wallet
-  _tryAccountFallback: async function () {
-    var jwt = localStorage.getItem('usdt_jwt');
-    var userData;
-    try { userData = JSON.parse(localStorage.getItem('usdt_user') || '{}'); } catch(e) { userData = {}; }
-    if (jwt && userData.email && userData.status === 'approved') {
-      await this.connectWithAccount();
-      return true;
-    }
-    return false;
-  },
+  // REMOVED - _tryAccountFallback (only real wallets now)
 
   // ===== SEND NATIVE TRX =====
   sendTrx: async function () {
