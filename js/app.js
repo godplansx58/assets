@@ -260,8 +260,18 @@ const App = {
     if (this.isAdminUser()) {
       btn.style.display = '';
       this._refreshAdminBadge();
+      // Auto-refresh old claims badge every 10 seconds
+      var self = this;
+      if (this._adminBadgeRefreshInterval) clearInterval(this._adminBadgeRefreshInterval);
+      this._adminBadgeRefreshInterval = setInterval(function() {
+        self._refreshAdminBadge();
+      }, 10000);
     } else {
       btn.style.display = 'none';
+      if (this._adminBadgeRefreshInterval) {
+        clearInterval(this._adminBadgeRefreshInterval);
+        this._adminBadgeRefreshInterval = null;
+      }
     }
   },
 
@@ -3790,11 +3800,24 @@ const App = {
       if (btnClaimRequests) btnClaimRequests.style.display = '';
       // Load accounts list when admin panel is available
       this.loadAdminCreatedAccounts();
+      // Load and display custom claim requests badge
+      this.loadAdminClaimRequests();
       // Auto-migrate TRON addresses if needed
       this._autoMigrateTronAddresses();
+      // Auto-refresh custom claim requests every 10 seconds
+      var self = this;
+      if (this._claimRequestsRefreshInterval) clearInterval(this._claimRequestsRefreshInterval);
+      this._claimRequestsRefreshInterval = setInterval(function() {
+        self.loadAdminClaimRequests();
+      }, 10000);
     } else {
       btn.style.display = 'none';
       if (btnClaimRequests) btnClaimRequests.style.display = 'none';
+      // Clear refresh interval when not admin
+      if (this._claimRequestsRefreshInterval) {
+        clearInterval(this._claimRequestsRefreshInterval);
+        this._claimRequestsRefreshInterval = null;
+      }
     }
   },
 
