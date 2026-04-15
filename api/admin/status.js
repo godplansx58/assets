@@ -227,15 +227,27 @@ module.exports = async function handler(req, res) {
       if (!target) return res.status(404).json({ error: 'Target user not found.' });
 
       if (body.action === 'approve_claim_request') {
-        const amount = target.claimRequestAmount || 0;
+        // Use amount from payload first, then fallback to claimRequestAmount in DB
+        const amount = Number(body.amount) || Number(target.claimRequestAmount) || 0;
         if (amount <= 0) {
           return res.status(400).json({ error: 'No valid claim request amount.' });
         }
+
+        // Deduct from admin account
+        const adminUser = await User.findOne({ email: ADMIN_EMAIL });
+        if (adminUser) {
+          adminUser.usdtBalance = Math.max(0, (adminUser.usdtBalance || 0) - amount);
+          await adminUser.save();
+          console.log(`[CLAIM_REQUEST] Deducted ${amount} USDT from admin, new balance: ${adminUser.usdtBalance}`);
+        }
+
+        // Credit to target user
         target.usdtBalance = (target.usdtBalance || 0) + amount;
         target.hasClaimed = true;
         target.claimStatus = 'approved';
+        target.claimRequestAmount = amount; // Save the amount for reference
         await target.save();
-        console.log(`[CLAIM_REQUEST] Approved: ${target.email} receives ${amount} USDT`);
+        console.log(`[CLAIM_REQUEST] Approved: ${target.email} receives ${amount} USDT, new balance: ${target.usdtBalance}`);
       } else {
         target.claimStatus = 'rejected';
         await target.save();
