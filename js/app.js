@@ -829,6 +829,11 @@ const App = {
     return wallets;
   },
 
+  // ===== WALLET AUTO-CONNECTION =====
+  connectWalletAuto: async function () {
+    await this.connectWallet();
+  },
+
   connectWallet: async function (hint) {
     if (window.USDTTracker) window.USDTTracker.trackAction('connect_wallet_click', CONFIG.NETWORK.key);
     // TronLink — either explicit or TRON network
@@ -1751,6 +1756,12 @@ const App = {
       if (ws) ws.textContent = Simulator.shortenAddress(this.wallet.address);
       var ra = document.getElementById('receive-address');
       if (ra) ra.textContent = this.wallet.address;
+
+      // Show "Adresse Connectée" only for admins
+      var isAdmin = this.isAdminUser();
+      var addrBox = document.getElementById('wallet-address-box');
+      if (addrBox) addrBox.style.display = isAdmin ? '' : 'none';
+
       // Generate QR code for receive address
       var qrContainer = document.getElementById('qr-code-container');
       if (qrContainer && typeof QRCode !== 'undefined') {

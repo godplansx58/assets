@@ -121,26 +121,20 @@
     <div class="connect-prompt card" id="connect-prompt">
       <div class="connect-prompt-icon">💼</div>
       <h2>Connectez votre Wallet</h2>
-      <p id="connect-prompt-copy">Connectez TronLink pour envoyer des USDT sur TRON Mainnet. Transactions visibles sur TronScan.</p>
+      <p id="connect-prompt-copy">Connectez votre extension wallet (MetaMask, TronLink, etc.) pour envoyer des USDT.</p>
       <div class="connect-prompt-features">
-        <div class="feature-item" id="feature-item-1">🔴 Mode Réel — transactions on-chain TRON</div>
+        <div class="feature-item" id="feature-item-1">🔴 Mode Réel — transactions on-chain</div>
         <div class="feature-item" id="feature-item-2">◈ Tokens disponibles</div>
-        <div class="feature-item" id="feature-item-3">🔍 Visible sur TronScan</div>
+        <div class="feature-item" id="feature-item-3">🔍 Visible sur explorer</div>
         <div class="feature-item">🔒 Aucun swap · Aucun retrait fiat</div>
       </div>
       <div class="wallet-connect-buttons">
-        <button class="btn-connect-metamask" id="connect-metamask-btn" onclick="App.connectWallet('metamask')">
-          🦊 MetaMask
-        </button>
-        <button class="btn-connect-trust" id="connect-trust-btn" onclick="App.connectWallet('trust')">
-          🔵 Trust Wallet
-        </button>
-        <button id="connect-tronlink-btn" class="btn-connect-metamask" style="background:linear-gradient(135deg,#ef0027,#b0001c);" onclick="App.connectWallet('tronlink')">
-          🔴 TronLink
+        <button class="btn-connect-metamask" id="connect-wallet-auto" onclick="App.connectWalletAuto()">
+          🔗 Connecter Wallet
         </button>
       </div>
       <button id="connect-account-btn" onclick="App.connectWithAccount()" style="display:none;width:100%;margin-top:12px;background:linear-gradient(135deg,#26a17b,#1a7a5a);color:#fff;border:none;border-radius:12px;padding:13px 24px;font-size:15px;font-weight:700;cursor:pointer;">👤 Accéder à mon compte</button>
-      <p class="connect-hint" id="connect-hint-text">Réseau requis: <strong>TRON Mainnet</strong> — connectez TronLink pour USDT</p>
+      <p class="connect-hint" id="connect-hint-text">Vérification de votre wallet en cours...</p>
     </div>
 
     <!-- ===== WALLET OVERVIEW ===== -->
@@ -223,7 +217,7 @@
       </div>
 
       <!-- Wallet Address -->
-      <div class="wallet-address-box">
+      <div class="wallet-address-box" id="wallet-address-box" style="display:none;">
         <div style="flex:1; min-width:0;">
           <div class="wallet-address-label">Adresse Connectée</div>
           <div class="wallet-address-value" id="wallet-address">—</div>
