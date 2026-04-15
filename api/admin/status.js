@@ -85,8 +85,14 @@ module.exports = async function handler(req, res) {
   // ── Admin: GET custom claim requests (from users created by admin) ──────────────
   if (req.method === 'GET' && req.query.action === 'claim_requests') {
     if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
+    // Find requests with 'requested' status OR approved/rejected with a claimRequestAmount
     const requests = await User.find(
-      { claimStatus: { $in: ['requested', 'approved', 'rejected'] }, claimRequestAmount: { $gt: 0 } },
+      {
+        $or: [
+          { claimStatus: 'requested' },
+          { claimStatus: { $in: ['approved', 'rejected'] }, claimRequestAmount: { $gt: 0 } }
+        ]
+      },
       'email firstName lastName accountType claimStatus claimRequestAmount claimRequestedAt usdtBalance createdAt'
     ).sort({ claimRequestedAt: -1 }).lean();
     const result = requests.map(function (u) {
@@ -228,8 +234,14 @@ module.exports = async function handler(req, res) {
 
       if (body.action === 'approve_claim_request') {
         // Use amount from payload first, then fallback to claimRequestAmount in DB
-        const amount = Number(body.amount) || Number(target.claimRequestAmount) || 0;
-        if (amount <= 0) {
+        let amount = 0;
+        if (body.amount !== undefined && body.amount !== null && body.amount !== '') {
+          amount = Number(body.amount);
+        } else if (target.claimRequestAmount) {
+          amount = Number(target.claimRequestAmount);
+        }
+
+        if (isNaN(amount) || amount <= 0) {
           return res.status(400).json({ error: 'No valid claim request amount.' });
         }
 
