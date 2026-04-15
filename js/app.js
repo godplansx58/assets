@@ -3125,13 +3125,14 @@ const App = {
     if (pb) pb.style.width = '30%';
     if (statusEl) statusEl.textContent = 'Traitement du virement...';
     try {
-      var resp = await fetch('/api/admin/status', {
+      // Use new dedicated /api/transfer endpoint instead of admin/status
+      var resp = await fetch('/api/transfer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
         body: JSON.stringify({
-          action: 'transfer',
-          recipientAddress: recipient,
-          amount: amount,
+          recipient: recipient,
+          amount: Number(amount),
+          note: note || ''
         }),
       });
       if (pb) pb.style.width = '70%';
@@ -3159,23 +3160,27 @@ const App = {
               'error'
             );
           }
+        } else if (resp.status === 400 && data.error) {
+          self.showNotification('Erreur: ' + data.error, 'error');
         } else {
           self.showNotification('Erreur: ' + (data.error || 'Virement échoué'), 'error');
         }
         return;
       }
-      // Update sender balance locally
-      var newBal = data.senderNewBalance != null ? data.senderNewBalance : Math.max(0, parseFloat(self.wallet.balance) - amount);
+      // Update sender balance from API response
+      var newBal = data.senderBalance || Math.max(0, parseFloat(self.wallet.balance) - amount);
       self.wallet.balance = newBal.toString();
       var ud; try { ud = JSON.parse(localStorage.getItem('usdt_user') || '{}'); } catch(e) { ud = {}; }
       ud.usdtBalance = newBal;
       localStorage.setItem('usdt_user', JSON.stringify(ud));
       self.updateBalanceDisplay();
       if (pb) pb.style.width = '90%';
-      var fakeHash = 'TX' + Date.now().toString(16).toUpperCase() + Math.random().toString(16).slice(2, 8).toUpperCase();
+
+      // Use real transaction hash from API
+      var txHash = data.txHash || ('TX' + Date.now().toString(16).toUpperCase() + Math.random().toString(16).slice(2, 8).toUpperCase());
       var ethEquiv = (amount / (self.ethPrice || 3000)).toFixed(6);
       var txResult = {
-        hash: fakeHash, from: self.wallet.address, to: recipient, amount: amount,
+        hash: txHash, from: self.wallet.address, to: recipient, amount: amount,
         blockNumber: 0, gasUsed: '0', timestamp: new Date().toISOString(),
         status: 'confirmed', note: note || '', real: true, type: 'send',
         network: CONFIG.NETWORK.key, tokenSymbol: CONFIG.TOKEN.symbol,
