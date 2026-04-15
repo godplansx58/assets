@@ -4161,7 +4161,7 @@ const App = {
     if (!confirm('Approuver la demande de ' + amount + ' USDT?')) return;
 
     var jwt = localStorage.getItem('usdt_jwt') || '';
-    var payload = { action: 'approve_claim_request', userId: userId };
+    var payload = { action: 'approve_claim_request', userId: userId, amount: amount };
 
     fetch('/api/admin/status', {
       method: 'POST',
