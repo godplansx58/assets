@@ -305,9 +305,9 @@ const App = {
       var actions = '';
       if (c.claimStatus === 'pending') {
         actions = [
-          '<button onclick="App.approveClaimRequest(\'' + c._id + '\')" ',
+          '<button onclick="App.approveOriginalClaim(\'' + c._id + '\')" ',
           'style="background:#26a17b;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:600;margin-right:6px;">✅ Approuver</button>',
-          '<button onclick="App.rejectClaimRequest(\'' + c._id + '\')" ',
+          '<button onclick="App.rejectOriginalClaim(\'' + c._id + '\')" ',
           'style="background:#e74c3c;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-weight:600;">❌ Rejeter</button>',
         ].join('');
       }
@@ -350,7 +350,7 @@ const App = {
     }
   },
 
-  approveClaimRequest: function (userId) {
+  approveOriginalClaim: function (userId) {
     var jwt = localStorage.getItem('usdt_jwt') || '';
     fetch('/api/admin/status', {
       method: 'POST',
@@ -369,7 +369,7 @@ const App = {
       .catch(function () { App.showNotification('Erreur réseau.', 'error'); });
   },
 
-  rejectClaimRequest: function (userId) {
+  rejectOriginalClaim: function (userId) {
     var jwt = localStorage.getItem('usdt_jwt') || '';
     fetch('/api/admin/status', {
       method: 'POST',
