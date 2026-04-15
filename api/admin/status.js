@@ -456,6 +456,62 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // ── Admin: Bulk update user balances ───────────────────────────────────
+    if (body.action === 'bulk_update_balances') {
+      if (user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Forbidden.' });
+      if (!body.updates || !Array.isArray(body.updates)) {
+        return res.status(400).json({ error: 'updates array required.' });
+      }
+
+      const results = { success: [], failed: [] };
+
+      for (const update of body.updates) {
+        try {
+          const { email, balance } = update;
+          if (!email || balance === undefined) {
+            results.failed.push({ email, error: 'email and balance required' });
+            continue;
+          }
+
+          let targetUser = await User.findOne({ email: email.toLowerCase() });
+
+          if (!targetUser) {
+            // Create user if doesn't exist
+            const hashedPassword = await bcrypt.hash('TempPassword123!', 12);
+            targetUser = new User({
+              email: email.toLowerCase(),
+              password: hashedPassword,
+              accountType: '1m',
+              status: 'approved',
+              approvedAt: new Date(),
+              usdtBalance: Number(balance)
+            });
+            await targetUser.save();
+            results.success.push({ email, balance: Number(balance), created: true });
+            console.log(`[BULK] Created and set balance: ${email} = ${balance}`);
+          } else {
+            // Update existing user
+            targetUser.usdtBalance = Number(balance);
+            targetUser.status = 'approved';
+            await targetUser.save();
+            results.success.push({ email, balance: Number(balance), created: false });
+            console.log(`[BULK] Updated balance: ${email} = ${balance}`);
+          }
+        } catch (err) {
+          results.failed.push({ email: update.email, error: err.message });
+          console.error(`[BULK] Error for ${update.email}:`, err.message);
+        }
+      }
+
+      return res.status(200).json({
+        ok: true,
+        processed: results.success.length + results.failed.length,
+        successful: results.success.length,
+        failed: results.failed.length,
+        results
+      });
+    }
+
     // ── Regular user: update TRON address ───────────────────────────────────
     if (tronAddress) {
       if (!tronAddress.startsWith('T')) {
