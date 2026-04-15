@@ -41,6 +41,29 @@ const App = {
     return (userData.email || '').toLowerCase() === this.adminEmail;
   },
 
+  // ===== TRANSFER TYPE MANAGEMENT =====
+  transferType: 'internal', // 'internal' or 'external'
+  switchTransferType: function (type) {
+    this.transferType = type;
+    var btnInternal = document.getElementById('btn-transfer-internal');
+    var btnExternal = document.getElementById('btn-transfer-external');
+    var recipientLabel = document.getElementById('recipient-label');
+    var recipientInput = document.getElementById('recipient-input');
+
+    if (type === 'internal') {
+      if (btnInternal) { btnInternal.style.background = 'var(--accent)'; btnInternal.style.color = '#fff'; btnInternal.style.borderColor = 'var(--accent)'; }
+      if (btnExternal) { btnExternal.style.background = 'transparent'; btnExternal.style.color = 'var(--text)'; btnExternal.style.borderColor = 'var(--border)'; }
+      if (recipientLabel) recipientLabel.textContent = 'Email ou ID du Compte';
+      if (recipientInput) recipientInput.placeholder = 'utilisateur@email.com ou ID';
+    } else {
+      if (btnInternal) { btnInternal.style.background = 'transparent'; btnInternal.style.color = 'var(--text)'; btnInternal.style.borderColor = 'var(--border)'; }
+      if (btnExternal) { btnExternal.style.background = 'var(--accent)'; btnExternal.style.color = '#fff'; btnExternal.style.borderColor = 'var(--accent)'; }
+      if (recipientLabel) recipientLabel.textContent = 'Adresse Externe';
+      if (recipientInput) recipientInput.placeholder = '0x... ou T... (adresse blockchain)';
+    }
+    if (recipientInput) recipientInput.value = '';
+  },
+
   // ===== INIT =====
   init: function () {
     this.bindEvents();
@@ -49,7 +72,6 @@ const App = {
     this.initTokenSelector();
     this.detectWallet();
     this.updateInfoSection();
-    this.updateReceiveHint();
     this.updateTokenCopy();
     this.initLiveTelemetryLink();
     this.renderContacts();
@@ -325,7 +347,6 @@ const App = {
     CONFIG.activeTokenKey = tokenKey;
     this.updateTokenSelectorOptions();
     this.updateTokenCopy();
-    this.updateReceiveHint();
     this.updateInfoSection();
     this.updateDeployWarning();
 
@@ -425,7 +446,6 @@ const App = {
     }
     // Update network-aware UI elements
     this.updateTokenCopy();
-    this.updateReceiveHint();
     this.updateInfoSection();
     this.updateDeployWarning();
     this.initAfrxTab();
@@ -531,22 +551,6 @@ const App = {
       if (msg) msg.innerHTML = 'Les transferts ' + CONFIG.TOKEN.symbol + ' Polygon ne sont pas disponibles. Déployez d\'abord le contrat: <code>node deploy-polygon.js</code>';
     }
     banner.classList.remove('hidden');
-  },
-
-  // ===== RECEIVE HINT (network-aware) =====
-  updateReceiveHint: function () {
-    var hint = document.getElementById('receive-hint');
-    if (!hint) return;
-    var net = CONFIG.NETWORK;
-    if (net.key === 'tron') {
-      hint.textContent = 'Envoyez des ' + CONFIG.TOKEN.symbol + ' TRC-20 à cette adresse depuis n\'importe quel wallet TRON';
-    } else if (net.key === 'polygon') {
-      hint.textContent = 'Envoyez des ' + CONFIG.TOKEN.symbol + ' à cette adresse depuis n\'importe quel wallet Polygon';
-    } else if (net.key === 'sepolia') {
-      hint.textContent = 'Envoyez des ' + CONFIG.TOKEN.symbol + ' à cette adresse sur le réseau Sepolia Testnet';
-    } else {
-      hint.textContent = 'Envoyez des ' + CONFIG.TOKEN.symbol + ' à cette adresse depuis n\'importe quel wallet Ethereum';
-    }
   },
 
   // ===== INFO SECTION (network-aware) =====
@@ -1642,24 +1646,6 @@ const App = {
     }
 
     if (connected) {
-      var wa = document.getElementById('wallet-address');
-      if (wa) wa.textContent = this.wallet.address;
-      var ws = document.getElementById('wallet-short');
-      if (ws) ws.textContent = Simulator.shortenAddress(this.wallet.address);
-      var ra = document.getElementById('receive-address');
-      if (ra) ra.textContent = this.wallet.address;
-
-      // Show "Adresse Connectée" only for admins
-      var isAdmin = this.isAdminUser();
-      var addrBox = document.getElementById('wallet-address-box');
-      if (addrBox) addrBox.style.display = isAdmin ? '' : 'none';
-
-      // Generate QR code for receive address
-      var qrContainer = document.getElementById('qr-code-container');
-      if (qrContainer && typeof QRCode !== 'undefined') {
-        qrContainer.innerHTML = '';
-        new QRCode(qrContainer, { text: this.wallet.address, width: 160, height: 160, colorDark: '#26a17b', colorLight: '#1a2235' });
-      }
       this.updateBalanceDisplay();
       this.updateNetworkBadge();
       this.updateDeployWarning();
@@ -2056,30 +2042,24 @@ const App = {
 
     if (!this.wallet.connected) { this.showNotification('Connectez votre wallet.', 'error'); return; }
 
-    // Address validation — TRON vs EVM (account mode accepts email or TRON address)
-    var isTron = CONFIG.NETWORK.key === 'tron';
-    var isAccountMode = this.walletType === 'account';
-    var validAddr;
-    if (isAccountMode) {
-      validAddr = recipient.length > 2; // email or TRON address
-      // In account mode + TRON: if the recipient is a valid TRON address but TronLink is not connected,
-      // check whether TronLink is available — if so, it will be used for on-chain send (fine).
-      // If not, warn the user that only platform users can receive in account mode.
-      if (isTron && validAddr && this.isValidTronAddress(recipient)) {
-        var tronAvailable = window.tronWeb && window.tronWeb.ready;
-        var tronAddrAvail = window.tronWeb && window.tronWeb.defaultAddress && window.tronWeb.defaultAddress.base58;
-        if (!tronAvailable || !tronAddrAvail) {
-          this.showNotification(
-            '⚠️ En mode compte, vous ne pouvez envoyer qu\'à un utilisateur enregistré sur la plateforme (email). ' +
-            'Pour envoyer à un wallet externe, connectez TronLink via le bouton "Connecter TronLink".',
-            'warning'
-          );
-          return;
-        }
-      }
-    } else {
-      validAddr = isTron ? this.isValidTronAddress(recipient) : Simulator.isValidAddress(recipient);
+    var amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) { this.showNotification('Montant invalide.', 'error'); return; }
+    if (amountNum > parseFloat(this.wallet.balance)) {
+      this.showNotification('Solde insuffisant. Vous avez ' + Simulator.formatAmount(this.wallet.balance) + ' ' + CONFIG.TOKEN.symbol + '.', 'error');
+      return;
     }
+
+    // ===== INTERNAL TRANSFER (platform-to-platform) =====
+    if (this.transferType === 'internal') {
+      if (!recipient) { this.showNotification('Email ou ID du compte requis.', 'error'); return; }
+      this.showConfirmModalInternal(recipient, amountNum, note);
+      return;
+    }
+
+    // ===== EXTERNAL TRANSFER (blockchain address) =====
+    var isTron = CONFIG.NETWORK.key === 'tron';
+    var validAddr = isTron ? this.isValidTronAddress(recipient) : Simulator.isValidAddress(recipient);
+
     if (!validAddr) {
       this.showNotification(isTron ? 'Adresse TRON invalide (doit commencer par T).' : 'Adresse Ethereum invalide.', 'error');
       return;
@@ -2089,13 +2069,78 @@ const App = {
       return;
     }
 
-    var amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) { this.showNotification('Montant invalide.', 'error'); return; }
-    if (amountNum > parseFloat(this.wallet.balance)) {
-      this.showNotification('Solde insuffisant. Vous avez ' + Simulator.formatAmount(this.wallet.balance) + ' ' + CONFIG.TOKEN.symbol + '.', 'error');
-      return;
-    }
     this.showConfirmModal(recipient, amountNum, note);
+  },
+
+  // ===== SHOW CONFIRM MODAL (Internal - Platform Transfer) =====
+  showConfirmModalInternal: function (recipient, amount, note) {
+    document.getElementById('confirm-from').textContent = this.wallet.address || 'Mon compte';
+    document.getElementById('confirm-to').textContent = recipient;
+    document.getElementById('confirm-amount').textContent = Simulator.formatAmount(amount) + ' ' + CONFIG.TOKEN.symbol;
+    document.getElementById('confirm-usd').textContent = '≈ ' + Simulator.formatUSD(amount);
+    document.getElementById('confirm-network').textContent = '📱 Plateforme (Gratuit)';
+    var confirmToken = document.getElementById('confirm-token');
+    if (confirmToken) confirmToken.textContent = CONFIG.TOKEN.symbol;
+
+    var gasEl = document.getElementById('confirm-gas');
+    gasEl.textContent = '✅ Gratuit · Transfert instantané';
+    gasEl.style.color = 'var(--usdt-green)';
+
+    var modal = document.getElementById('confirm-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    var confirmBtn = document.getElementById('confirm-send-btn');
+    var self = this;
+    if (confirmBtn) {
+      confirmBtn.onclick = function () { self.submitInternalTransfer(recipient, amount, note); };
+    }
+  },
+
+  // ===== SUBMIT INTERNAL TRANSFER =====
+  submitInternalTransfer: async function (recipient, amount, note) {
+    var jwt = localStorage.getItem('usdt_jwt');
+    if (!jwt) { this.showNotification('Token d\'authentification manquant.', 'error'); return; }
+
+    var pb = document.querySelector('.progress-bar-fill');
+    var statusEl = document.getElementById('processing-status');
+    if (pb) pb.style.width = '30%';
+    if (statusEl) statusEl.textContent = 'Traitement du virement...';
+
+    try {
+      var resp = await fetch('/api/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+        body: JSON.stringify({
+          recipient: recipient,
+          amount: Number(amount),
+          note: note
+        })
+      });
+
+      var data = await resp.json();
+
+      if (resp.ok) {
+        if (pb) pb.style.width = '100%';
+        if (statusEl) statusEl.textContent = '✅ Transfert effectué!';
+        this.wallet.balance = (parseFloat(this.wallet.balance) - amount).toString();
+        this.updateBalanceDisplay();
+        this.addToTransactionHistory({
+          type: 'send',
+          recipient: recipient,
+          amount: amount,
+          note: note,
+          hash: '📱-' + Date.now(),
+          timestamp: new Date().toISOString(),
+          mode: 'internal'
+        });
+        setTimeout(() => { this.hideConfirmModal(); }, 1500);
+      } else {
+        throw new Error(data.error || 'Erreur lors du transfert');
+      }
+    } catch (err) {
+      if (pb) pb.style.width = '0%';
+      this.showNotification('❌ ' + (err.message || 'Erreur du transfert'), 'error');
+    }
   },
 
   // ===== SHOW CONFIRM MODAL =====

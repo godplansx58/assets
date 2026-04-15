@@ -215,18 +215,6 @@
         </button>
       </div>
 
-      <!-- Wallet Address -->
-      <div class="wallet-address-box" id="wallet-address-box" style="display:none;">
-        <div style="flex:1; min-width:0;">
-          <div class="wallet-address-label">Adresse Connectée</div>
-          <div class="wallet-address-value" id="wallet-address">—</div>
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <div class="wallet-badge" id="wallet-short">—</div>
-          <button id="copy-addr-btn" class="btn-copy-addr" onclick="App.copyAddress()">📋 Copier</button>
-        </div>
-      </div>
-
       <!-- Wallet Name (Prénom / Nom) -->
       <div class="wallet-address-box" style="flex-direction:column; gap:10px;">
         <div style="display:flex; align-items:center; gap:8px;">
@@ -249,20 +237,6 @@
             style="flex:1; min-width:100px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-sm); padding:7px 10px; color:var(--text); font-size:13px;"
           />
           <button id="wallet-name-save-btn" onclick="App.saveWalletName()" style="background:var(--accent); color:#fff; border:none; border-radius:var(--radius-sm); padding:7px 14px; font-size:13px; cursor:pointer; font-weight:600;">💾 Sauvegarder</button>
-        </div>
-      </div>
-
-      <!-- Receive Section -->
-      <div class="receive-section">
-        <div class="receive-label" id="receive-label">📥 Recevoir des USDT — Partagez cette adresse:</div>
-        <div class="receive-address-box">
-          <span id="receive-address" class="receive-address">—</span>
-          <button class="btn-copy-small" onclick="App.copyAddress()">Copier</button>
-        </div>
-        <div class="receive-hint" id="receive-hint">Envoyez des USDT à cette adresse depuis n'importe quel wallet Ethereum</div>
-        <div class="qr-code-wrapper">
-          <div id="qr-code-container"></div>
-          <div class="qr-code-label">Scanner pour recevoir</div>
         </div>
       </div>
 
@@ -322,20 +296,34 @@
 
       <form id="send-form" autocomplete="off">
 
+        <!-- Transfer Type Selector -->
+        <div class="form-group">
+          <label class="form-label">Type d'Envoi</label>
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <button type="button" class="btn-transfer-type active" id="btn-transfer-internal" onclick="App.switchTransferType('internal')" style="flex:1; padding:10px; border:2px solid var(--accent); background:var(--accent); color:#fff; border-radius:var(--radius-sm); font-weight:600; cursor:pointer;">
+              👥 Compte Plateforme
+            </button>
+            <button type="button" class="btn-transfer-type" id="btn-transfer-external" onclick="App.switchTransferType('external')" style="flex:1; padding:10px; border:2px solid var(--border); background:transparent; color:var(--text); border-radius:var(--radius-sm); font-weight:600; cursor:pointer;">
+              🔗 Adresse Externe
+            </button>
+          </div>
+        </div>
+
         <!-- Quick Recipients -->
         <div id="quick-recipients-bar" style="display:none; margin-bottom:14px;">
           <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">⚡ Destinataires récents</div>
           <div id="quick-recipients-list" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
+        <!-- Recipient Input - Dynamic -->
         <div class="form-group">
-          <label class="form-label" for="recipient-input">Adresse du Destinataire</label>
+          <label class="form-label" for="recipient-input" id="recipient-label">Email ou ID du Compte</label>
           <div style="display:flex; gap:8px;">
           <input
             type="text"
             id="recipient-input"
             class="form-input"
-            placeholder="0x... adresse Ethereum"
+            placeholder="utilisateur@email.com ou ID"
             spellcheck="false"
             style="flex:1;"
           />
